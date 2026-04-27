@@ -4,37 +4,35 @@ import { useState, useEffect } from "react";
 const STORAGE_KEY = "pan_recipe_past_ingredients";
 const MAX_PAST = 10;
 
-export default function StepIngredients({ value, onChange, onNext, done }) {
+// 文字列を安全に分割するヘルパー
+function splitIngredients(str) {
+  if (typeof str !== "string" || str.trim() === "") return [];
+  return str.split(/[,、]/).map((s) => s.trim()).filter(Boolean);
+}
+
+export default function StepIngredients({ value = "", onChange, onNext, done }) {
   const [past, setPast] = useState([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      setPast(saved);
+      setPast(Array.isArray(saved) ? saved : []);
     } catch {
       setPast([]);
     }
   }, []);
 
-  // 保存：カンマ・読点どちらでも分割して1件ずつ保存
   const savePast = (ingredientStr) => {
-    const items = ingredientStr
-      .split(/[,、]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const items = splitIngredients(ingredientStr);
     const merged = [...new Set([...items, ...past])].slice(0, MAX_PAST);
     setPast(merged);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
   };
 
-  // タグをタップしたら入力欄に追加（読点区切り）
   const addFromTag = (item) => {
     if (done) return;
-    const current = value
-      .split(/[,、]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const current = splitIngredients(value);
     if (!current.includes(item)) {
       onChange(current.length > 0 ? value + "、" + item : item);
     }
@@ -50,15 +48,10 @@ export default function StepIngredients({ value, onChange, onNext, done }) {
     onNext();
   };
 
-  // 現在入力中の材料リスト（タグのハイライト判定用）
-  const selectedTags = value
-    .split(/[,、]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const selectedTags = splitIngredients(value);
 
   return (
     <div>
-      {/* 入力エリア */}
       <div className="mb-5">
         <label
           className="block text-xs font-medium mb-2"
@@ -93,9 +86,7 @@ export default function StepIngredients({ value, onChange, onNext, done }) {
           }}
         />
         {error && (
-          <p className="text-xs mt-1" style={{ color: "#ef4444" }}>
-            {error}
-          </p>
+          <p className="text-xs mt-1" style={{ color: "#ef4444" }}>{error}</p>
         )}
         {!done && (
           <p className="text-xs mt-1" style={{ color: "var(--gray-muted)" }}>
@@ -104,13 +95,9 @@ export default function StepIngredients({ value, onChange, onNext, done }) {
         )}
       </div>
 
-      {/* 過去材料タグ */}
       {past.length > 0 && (
         <div className="mb-6">
-          <p
-            className="text-xs font-medium mb-3"
-            style={{ color: "var(--gray-mid)" }}
-          >
+          <p className="text-xs font-medium mb-3" style={{ color: "var(--gray-mid)" }}>
             過去に使った材料
           </p>
           <div className="flex flex-wrap gap-2">
@@ -140,7 +127,6 @@ export default function StepIngredients({ value, onChange, onNext, done }) {
         </div>
       )}
 
-      {/* 次へボタン（完了前のみ表示） */}
       {!done && (
         <button
           onClick={handleNext}
