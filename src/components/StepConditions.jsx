@@ -3,111 +3,67 @@
 const TEXTURES = ["ふわふわ", "ハード", "しっとり"];
 const TIMES = ["時短", "じっくり"];
 
-export default function StepConditions({ value, onChange, onGenerate, onBack, loading }) {
+export default function StepConditions({ value, onChange, onGenerate, loading }) {
   const toggle = (item) => {
-    if (value.includes(item)) {
-      onChange(value.filter((v) => v !== item));
-    } else {
-      onChange([...value, item]);
-    }
+    onChange(value.includes(item) ? value.filter((v) => v !== item) : [...value, item]);
   };
 
+  const card = {
+    background: "var(--white)", borderRadius: 16,
+    border: "0.5px solid rgba(0,0,0,0.12)", overflow: "hidden",
+  };
+  const body = { padding: "14px 16px 18px" };
+  const sectionTitle = { fontSize: 12, fontWeight: 500, color: "var(--gray-mid)", marginBottom: 8 };
+  const divider = { height: "0.5px", background: "rgba(0,0,0,0.1)", margin: "14px 0" };
+
+  const condBtn = (sel) => ({
+    borderRadius: 8, padding: "10px", fontSize: 12, textAlign: "center", cursor: "pointer",
+    background: sel ? "var(--green-pale)" : "var(--white)",
+    border: sel ? "0.5px solid var(--green-light)" : "0.5px solid rgba(0,0,0,0.12)",
+    color: sel ? "var(--green-deep)" : "var(--gray-ink)",
+    fontWeight: sel ? 500 : 400,
+  });
+
   return (
-    <div className="animate-fade-up">
-      {/* 食感 */}
-      <div className="mb-6">
-        <p className="text-xs font-medium mb-3" style={{ color: "var(--gray-mid)" }}>
-          食感を選んでください
-          <span className="ml-1 font-normal" style={{ color: "var(--gray-muted)" }}>
-            （複数可）
-          </span>
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {TEXTURES.map((item) => {
-            const sel = value.includes(item);
-            return (
-              <button
-                key={item}
-                onClick={() => toggle(item)}
-                className="py-3 rounded-xl text-sm transition-all active:scale-95"
-                style={{
-                  background: sel ? "var(--green-pale)" : "var(--white)",
-                  border: sel
-                    ? "1.5px solid var(--green-light)"
-                    : "1px solid var(--gray-border)",
-                  color: sel ? "var(--green-deep)" : "var(--gray-ink)",
-                  fontWeight: sel ? 500 : 400,
-                }}
-              >
-                {item}
-              </button>
-            );
-          })}
-        </div>
+    <div style={card}>
+      <div style={{
+        background: "var(--green-pale)", padding: "10px 16px",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--green-deep)" }}>② 条件選択</span>
       </div>
 
-      {/* 時間 */}
-      <div className="mb-8">
-        <p className="text-xs font-medium mb-3" style={{ color: "var(--gray-mid)" }}>
-          調理時間を選んでください
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          {TIMES.map((item) => {
-            const sel = value.includes(item);
-            return (
-              <button
-                key={item}
-                onClick={() => toggle(item)}
-                className="py-3 rounded-xl text-sm transition-all active:scale-95"
-                style={{
-                  background: sel ? "var(--green-pale)" : "var(--white)",
-                  border: sel
-                    ? "1.5px solid var(--green-light)"
-                    : "1px solid var(--gray-border)",
-                  color: sel ? "var(--green-deep)" : "var(--gray-ink)",
-                  fontWeight: sel ? 500 : 400,
-                }}
-              >
-                {item}
-              </button>
-            );
-          })}
+      <div style={body}>
+        <div style={sectionTitle}>食感を選んでください（複数可）</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          {TEXTURES.map((item) => (
+            <button key={item} onClick={() => toggle(item)} disabled={loading} style={condBtn(value.includes(item))}>
+              {item}
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* 生成ボタン */}
-      <button
-        onClick={onGenerate}
-        disabled={loading}
-        className="w-full py-3.5 rounded-xl text-sm font-medium transition-all active:scale-95 flex items-center justify-center gap-2 mb-3"
-        style={{
+        <div style={divider} />
+
+        <div style={sectionTitle}>調理時間を選んでください</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {TIMES.map((item) => (
+            <button key={item} onClick={() => toggle(item)} disabled={loading} style={condBtn(value.includes(item))}>
+              {item}
+            </button>
+          ))}
+        </div>
+
+        <button onClick={onGenerate} disabled={loading} style={{
+          width: "100%", padding: 11, borderRadius: 8, marginTop: 14,
           background: loading ? "var(--green-light)" : "var(--green-main)",
-          color: "var(--white)",
+          color: "var(--white)", border: "none", fontSize: 13, fontWeight: 500,
           cursor: loading ? "not-allowed" : "pointer",
-        }}
-      >
-        {loading ? (
-          <>
-            <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
-            レシピを生成中...
-          </>
-        ) : (
-          "レシピを生成する"
-        )}
-      </button>
-
-      <button
-        onClick={onBack}
-        disabled={loading}
-        className="w-full py-3 rounded-xl text-sm transition-all"
-        style={{
-          background: "transparent",
-          border: "1px solid var(--gray-border)",
-          color: "var(--gray-soft)",
-        }}
-      >
-        ← 戻る
-      </button>
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+        }}>
+          {loading ? <><span className="spinner" />レシピを生成中...</> : "レシピを生成する"}
+        </button>
+      </div>
     </div>
   );
 }

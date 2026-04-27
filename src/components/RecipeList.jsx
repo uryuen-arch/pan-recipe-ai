@@ -1,73 +1,78 @@
 "use client";
 
-const TEXTURE_COLOR = {
-  ふわふわ: { bg: "var(--green-pale)", text: "var(--green-mid)" },
-  しっとり: { bg: "var(--green-pale)", text: "var(--green-mid)" },
-  ハード:   { bg: "#f1efe8",           text: "var(--gray-mid)" },
-};
-
-export default function RecipeList({ recipes, onSelect, onBack }) {
+export default function RecipeList({ recipes, onSelect, onRegenerate, loading }) {
   return (
-    <div className="animate-fade-up">
-      <p className="text-xs mb-4" style={{ color: "var(--gray-soft)" }}>
-        {recipes.length}件のレシピが見つかりました
-      </p>
+    <div style={{
+      background: "var(--white)", borderRadius: 16,
+      border: "0.5px solid rgba(0,0,0,0.12)", overflow: "hidden",
+    }}>
+      {/* ヘッダー */}
+      <div style={{
+        background: "var(--green-pale)", padding: "10px 16px",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--green-deep)" }}>③ レシピ一覧</span>
+        <span style={{ fontSize: 11, color: "var(--green-mid)" }}>{recipes.length}件見つかりました</span>
+      </div>
 
-      <div className="flex flex-col gap-3 mb-4">
+      <div style={{ padding: "14px 16px 18px" }}>
         {recipes.map((recipe, i) => {
-          const tc = TEXTURE_COLOR[recipe.texture] || TEXTURE_COLOR["ハード"];
+          const isGreen = ["ふわふわ", "しっとり"].includes(recipe.texture);
           return (
             <button
               key={i}
               onClick={() => onSelect(recipe)}
-              className="w-full text-left rounded-2xl p-4 transition-all active:scale-[0.98]"
               style={{
-                background: "var(--white)",
-                border: "1px solid var(--gray-border)",
+                width: "100%", textAlign: "left", display: "block",
+                border: "0.5px solid rgba(0,0,0,0.1)", borderRadius: 12,
+                padding: "12px 14px", marginBottom: 10,
+                background: "var(--white)", cursor: "pointer",
               }}
             >
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium leading-snug" style={{ color: "var(--gray-ink)" }}>
-                  {recipe.name}
-                </p>
-                <span style={{ color: "var(--gray-muted)", fontSize: 18, flexShrink: 0 }}>›</span>
+              {/* タイトル行 */}
+              <div style={{
+                fontSize: 14, fontWeight: 500, color: "var(--gray-ink)",
+                marginBottom: 7, display: "flex", justifyContent: "space-between", alignItems: "center",
+              }}>
+                <span>{recipe.name}</span>
+                <span style={{ fontSize: 16, color: "var(--gray-muted)" }}>›</span>
               </div>
 
-              <div className="flex gap-2 mt-2 mb-3">
-                <span
-                  className="text-xs px-2.5 py-1 rounded-full"
-                  style={{ background: tc.bg, color: tc.text }}
-                >
+              {/* バッジ */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                <span style={{
+                  fontSize: 10, padding: "3px 9px", borderRadius: 12,
+                  background: isGreen ? "var(--green-pale)" : "var(--gray-light)",
+                  color: isGreen ? "var(--green-mid)" : "var(--gray-mid)",
+                }}>
                   {recipe.texture}
                 </span>
-                <span
-                  className="text-xs px-2.5 py-1 rounded-full"
-                  style={{ background: "var(--amber-pale)", color: "var(--amber-dark)" }}
-                >
+                <span style={{
+                  fontSize: 10, padding: "3px 9px", borderRadius: 12,
+                  background: "var(--amber-pale)", color: "var(--amber-dark)",
+                }}>
                   {recipe.time}
                 </span>
               </div>
 
-              <p className="text-xs" style={{ color: "var(--gray-soft)" }}>
+              {/* 材料 */}
+              <div style={{ fontSize: 11, color: "var(--gray-soft)" }}>
                 {recipe.ingredients.slice(0, 4).join("・")}
                 {recipe.ingredients.length > 4 && ` ほか${recipe.ingredients.length - 4}点`}
-              </p>
+              </div>
             </button>
           );
         })}
-      </div>
 
-      <button
-        onClick={onBack}
-        className="w-full py-3 rounded-xl text-sm transition-all"
-        style={{
-          background: "transparent",
-          border: "1px solid var(--gray-border)",
-          color: "var(--gray-soft)",
-        }}
-      >
-        ← 条件を変えて再生成
-      </button>
+        <button onClick={onRegenerate} disabled={loading} style={{
+          width: "100%", padding: 11, borderRadius: 8, marginTop: 4,
+          background: "var(--white)", fontSize: 12, fontWeight: 400,
+          border: "0.5px solid rgba(0,0,0,0.18)", color: "var(--gray-soft)",
+          cursor: "pointer",
+        }}>
+          ← 条件を変えて再生成
+        </button>
+      </div>
     </div>
   );
 }
