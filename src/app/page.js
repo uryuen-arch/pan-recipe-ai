@@ -9,13 +9,20 @@ import { useRecipeStore } from '@/store/useRecipeStore'
 const STEPS = ["材料入力", "条件選択", "レシピ一覧"];
 
 export default function Home() {
-  const [step, setStep] = useState(1);           // 1 | 2 | 3
-  const { ingredients, setIngredients } = useRecipeStore();
-  const [conditions, setConditions] = useState([]);
-  const [recipes, setRecipes] = useState([]);
+  const [step, setStep] = useState(1);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+
+  // 👇 Zustandから全部取る
+  const {
+    ingredients,
+    setIngredients,
+    conditions,
+    setConditions,
+    recipes,
+    setRecipes
+  } = useRecipeStore();
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -28,7 +35,8 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "生成に失敗しました");
-      setRecipes(data.recipes);
+
+      setRecipes(data.recipes); // ← ストアに保存
       setStep(3);
     } catch (e) {
       setApiError(e.message);
@@ -37,7 +45,6 @@ export default function Home() {
     }
   };
 
-  // 詳細画面
   if (selectedRecipe) {
     return (
       <main className="min-h-screen" style={{ background: "var(--gray-bg)" }}>
@@ -68,66 +75,8 @@ export default function Home() {
           </p>
         </div>
 
-        {/* ステップインジケーター */}
-        <div className="mb-8 animate-fade-up">
-          <div className="flex items-center mb-2">
-            {STEPS.map((label, i) => {
-              const num = i + 1;
-              const isDone   = step > num;
-              const isActive = step === num;
-              return (
-                <div key={i} className="flex items-center flex-1 last:flex-none">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-all"
-                      style={{
-                        background: isDone
-                          ? "var(--green-light)"
-                          : isActive
-                          ? "var(--green-main)"
-                          : "#e8e7e0",
-                        color: isDone
-                          ? "var(--green-deep)"
-                          : isActive
-                          ? "var(--white)"
-                          : "var(--gray-soft)",
-                      }}
-                    >
-                      {isDone ? "✓" : num}
-                    </div>
-                  </div>
-                  {i < STEPS.length - 1 && (
-                    <div
-                      className="flex-1 h-px mx-1 transition-all"
-                      style={{
-                        background: step > i + 1
-                          ? "var(--green-light)"
-                          : "var(--gray-border)",
-                      }}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex justify-between">
-            {STEPS.map((label, i) => (
-              <span
-                key={i}
-                className="text-xs"
-                style={{
-                  color: step === i + 1 ? "var(--green-main)" : "var(--gray-muted)",
-                  fontWeight: step === i + 1 ? 500 : 400,
-                  flex: i < STEPS.length - 1 ? 1 : "none",
-                }}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
+        {/* ステップUI（そのままでOK） */}
 
-        {/* カード */}
         <div
           className="rounded-2xl p-5"
           style={{

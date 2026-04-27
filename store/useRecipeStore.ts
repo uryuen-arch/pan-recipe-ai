@@ -8,21 +8,21 @@ type Recipe = {
 }
 
 type Store = {
-  ingredients: string
+  ingredients: string[]
   conditions: string[]
   recipes: Recipe[]
 
-  setIngredients: (data: string) => void
+  setIngredients: (data: string[]) => void
   setConditions: (data: string[]) => void
   setRecipes: (data: Recipe[]) => void
 }
 
 export const useRecipeStore = create<Store>((set) => ({
-  ingredients: "",
+  ingredients: [],
   conditions: [],
   recipes: [],
 
-  setIngredients: (data: string) => set({ ingredients: data }),
+  setIngredients: (data: string[]) => set({ ingredients: data }), // ← 配列
   setConditions: (data) => set({ conditions: data }),
   setRecipes: (data) => set({ recipes: data }),
 }))
