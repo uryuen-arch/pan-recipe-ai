@@ -12,7 +12,8 @@ export async function POST(request) {
 
     const prompt = `
 あなたはパン作りの専門家です。
-以下の材料と条件をもとに、パンレシピを3件生成してください。
+以下の材料と条件をもとに、異なる3種類のレシピを提案してください。
+それぞれ調理方法・コンセプトを変えてください。
 
 【材料】${ingredients}
 【条件】${conditions.length > 0 ? conditions.join("、") : "指定なし"}
