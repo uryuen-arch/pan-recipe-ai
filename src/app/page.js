@@ -4,12 +4,13 @@ import StepIngredients from "@/components/StepIngredients";
 import StepConditions from "@/components/StepConditions";
 import RecipeList from "@/components/RecipeList";
 import RecipeDetail from "@/components/RecipeDetail";
+import { useRecipeStore } from '@/store/useRecipeStore'
 
 const STEPS = ["材料入力", "条件選択", "レシピ一覧"];
 
 export default function Home() {
   const [step, setStep] = useState(1);           // 1 | 2 | 3
-  const [ingredients, setIngredients] = useState("");
+  const { ingredients, setIngredients } = useRecipeStore();
   const [conditions, setConditions] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
