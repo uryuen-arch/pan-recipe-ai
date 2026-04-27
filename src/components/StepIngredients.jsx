@@ -17,28 +17,22 @@ export default function StepIngredients({ value, onChange, onNext }) {
     }
   }, []);
 
-  const savePast = (ingredientStr) => {
-    const items = ingredientStr
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const merged = [...new Set([...items, ...past])].slice(0, MAX_PAST);
+  const savePast = (ingredientsArray) => {
+    const merged = [...new Set([...ingredientsArray, ...past])].slice(0, MAX_PAST);
     setPast(merged);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
   };
 
   const addFromTag = (item) => {
-    const current = value
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const current = value;
+      
     if (!current.includes(item)) {
-      onChange(current.length > 0 ? value + "、" + item : item);
+      onChange([...current, item]);
     }
   };
 
   const handleNext = () => {
-    if (!value.trim()) {
+    if (value.length === 0) {
       setError("材料を入力してください");
       return;
     }
@@ -47,10 +41,8 @@ export default function StepIngredients({ value, onChange, onNext }) {
     onNext();
   };
 
-  const selectedTags = value
-    .split(/[,、]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const selectedTags = value;
+    
 
   return (
     <div className="animate-fade-up">
@@ -64,9 +56,14 @@ export default function StepIngredients({ value, onChange, onNext }) {
         </label>
         <textarea
           rows={3}
-          value={value}
+          value={value.join(", ")}
           onChange={(e) => {
-            onChange(e.target.value);
+            const array = e.target.value
+              .split(/[,、]/)
+              .map((s) => s.trim())
+              .filter(Boolean);
+
+            onChange(array);
             setError("");
           }}
           placeholder="例）強力粉、バター、砂糖、牛乳"
