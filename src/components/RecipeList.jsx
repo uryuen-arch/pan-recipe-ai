@@ -70,7 +70,7 @@ export default function RecipeList({ recipes, onSelect, onRegenerate, loading })
           border: "0.5px solid rgba(0,0,0,0.18)", color: "var(--gray-soft)",
           cursor: "pointer",
         }}>
-          ← 条件を変えて再生成
+          条件を変えて再生成
         </button>
       </div>
     </div>

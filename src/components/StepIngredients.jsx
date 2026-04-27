@@ -120,7 +120,7 @@ export default function StepIngredients({ value = "", onChange, onNext, done }) 
             background: "var(--green-main)", color: "var(--white)",
             border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer",
           }}>
-            次へ →
+            次へ
           </button>
         )}
       </div>
