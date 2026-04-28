@@ -2,34 +2,29 @@
 
 const CONDITION_GROUPS = [
   {
-    key: "texture",
-    label: "① 食感",
-    options: ["ハード系", "ふんわり", "しっとり"],
-    multi: true,
-  },
-  {
-    key: "taste",
-    label: "② 味",
-    options: ["甘い", "食事系"],
-    multi: true,
+    key: "difficulty",
+    label: "① 作りやすさ",
+    note: "最重要",
+    options: ["超簡単", "簡単", "本格"],
+    multi: false,
   },
   {
     key: "time",
-    label: "③ 時間",
-    options: ["時短（〜1時間）", "標準（1〜2時間）", "じっくり（低温発酵）"],
+    label: "② 時間",
+    options: ["30分以内", "1時間", "一晩"],
     multi: false,
   },
   {
     key: "method",
-    label: "④ 調理方法",
-    options: ["オーブン", "ホームベーカリー", "トースター", "フライパン"],
+    label: "③ 調理方法",
+    options: ["フライパン", "オーブン", "ホームベーカリー"],
     multi: false,
   },
   {
-    key: "difficulty",
-    label: "⑤ 手間",
-    options: ["超簡単", "簡単", "普通", "本格"],
-    multi: false,
+    key: "texture",
+    label: "④ 食感",
+    options: ["ふんわり", "しっとり", "ハード系"],
+    multi: true,
   },
 ];
 
@@ -40,7 +35,6 @@ export default function StepConditions({ value, onChange, onGenerate, loading })
     if (multi) {
       onChange(value.includes(item) ? value.filter((v) => v !== item) : [...value, item]);
     } else {
-      // 同グループの他の選択を外して単一選択
       const group = CONDITION_GROUPS.find((g) => g.options.includes(item));
       const others = group ? group.options : [];
       const filtered = value.filter((v) => !others.includes(v));
@@ -69,10 +63,19 @@ export default function StepConditions({ value, onChange, onGenerate, loading })
           <div key={group.key}>
             {gi > 0 && <div style={divider} />}
 
-            <div style={{ marginBottom: 8 }}>
+            <div style={{ marginBottom: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 500, color: "var(--gray-mid)" }}>
                 {group.label}
               </span>
+              {group.note && (
+                <span style={{
+                  fontSize: 10, color: "var(--white)", marginLeft: 6,
+                  background: "var(--green-main)", borderRadius: 20,
+                  padding: "2px 7px",
+                }}>
+                  {group.note}
+                </span>
+              )}
               {group.multi && (
                 <span style={{ fontSize: 10, color: "var(--gray-muted)", marginLeft: 6 }}>
                   複数可
@@ -80,9 +83,7 @@ export default function StepConditions({ value, onChange, onGenerate, loading })
               )}
             </div>
 
-            <div style={{
-              display: "flex", flexWrap: "wrap", gap: 8,
-            }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {group.options.map((item) => {
                 const sel = value.includes(item);
                 return (
@@ -91,7 +92,7 @@ export default function StepConditions({ value, onChange, onGenerate, loading })
                     onClick={() => toggle(item, group.multi)}
                     disabled={loading}
                     style={{
-                      padding: "8px 14px", borderRadius: 20, fontSize: 12,
+                      padding: "8px 16px", borderRadius: 20, fontSize: 12,
                       background: sel ? "var(--green-pale)" : "var(--white)",
                       border: sel ? "1px solid var(--green-light)" : "0.5px solid var(--gray-border)",
                       color: sel ? "var(--green-deep)" : "var(--gray-ink)",
@@ -108,7 +109,6 @@ export default function StepConditions({ value, onChange, onGenerate, loading })
           </div>
         ))}
 
-        {/* 生成ボタン */}
         <button
           onClick={onGenerate}
           disabled={loading}
@@ -120,11 +120,7 @@ export default function StepConditions({ value, onChange, onGenerate, loading })
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}
         >
-          {loading ? (
-            <><span className="spinner" />レシピを生成中...</>
-          ) : (
-            "レシピを生成する"
-          )}
+          {loading ? <><span className="spinner" />レシピを生成中...</> : "レシピを生成する"}
         </button>
       </div>
     </div>

@@ -72,7 +72,7 @@ export default function StepIngredients({ value = "", onChange, onNext, done }) 
           rows={3}
           value={value}
           onChange={(e) => { onChange(e.target.value); setError(""); }}
-          placeholder="例）強力粉、バター、砂糖、牛乳"
+          placeholder="例：強力粉、バター、砂糖、牛乳"
           disabled={done}
           style={{
             width: "100%", borderRadius: 8, padding: "10px 12px", fontSize: 13,
