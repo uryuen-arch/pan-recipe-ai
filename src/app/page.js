@@ -39,7 +39,7 @@ export default function Home() {
     setRecipes([]);
 
 
-  // ダミーデータ（APIの代わり）
+  /*ダミーデータ（APIの代わり）
   await new Promise((r) => setTimeout(r, 1200)); // ローディング演出
   setRecipes([
     {
@@ -87,9 +87,9 @@ export default function Home() {
   setLoading(false);
 };
 
-// ダミーデータここまで（APIの代わり）
+ ダミーデータここまで（APIの代わり）*/
 
-    /*　APIを使うときは有効化
+    //　APIを使うときは有効化
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -106,8 +106,8 @@ export default function Home() {
       setLoading(false);
     }
   };
-  有効化ｌここまで  
-  */
+  //有効化ここまで  
+  
 
   // ── 詳細画面 ──
   if (selectedRecipe) {
