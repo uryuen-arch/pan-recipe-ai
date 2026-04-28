@@ -109,6 +109,23 @@ export default function StepConditions({ value, onChange, onGenerate, loading, r
           </div>
         ))}
 
+<button
+  onClick={onGenerate}
+  disabled={loading}
+  style={{
+    width: "100%", padding: 12, borderRadius: 10, marginTop: 18,
+    background: loading ? "var(--green-light)" : "var(--green-main)",
+    color: "var(--white)", border: "none", fontSize: 13, fontWeight: 500,
+    cursor: loading ? "not-allowed" : "pointer",
+    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+  }}
+>
+  {loading
+    ? <><span className="spinner" />レシピを生成中...</>
+    : "レシピを生成する"}
+</button>
+
+{/* 回数制限コメントアウト
         <button
           onClick={onGenerate}
           disabled={loading || remaining <= 0}
@@ -122,12 +139,14 @@ export default function StepConditions({ value, onChange, onGenerate, loading, r
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}
         >
+         
           {remaining <= 0
             ? "本日の生成回数に達しました"
             : loading
             ? <><span className="spinner" />レシピを生成中...</>
             : `レシピを生成する（残り${remaining}回）`}
         </button>
+*/}
       </div>
     </div>
   );

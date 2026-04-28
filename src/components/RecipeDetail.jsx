@@ -1,6 +1,105 @@
 "use client";
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
+import { getSessionId } from "../lib/session";
+import ProductRecommend from "./ProductRecommend";
 
 export default function RecipeDetail({ recipe, onBack }) {
+  const [favoriteId, setFavoriteId] = useState(null); // DBのfavorites.id
+  const [recipeDbId, setRecipeDbId] = useState(null);  // DBのrecipes.id
+  const [saving, setSaving] = useState(false);
+
+  // 画面表示時：DBにレシピを保存 & お気に入り状態を確認
+  useEffect(() => {
+    initRecipe();
+  }, []);
+
+  const initRecipe = async () => {
+    try {
+      // ① recipesテーブルに保存（同名レシピが既にあればそれを使う）
+      const { data: existing } = await supabase
+        .from("recipes")
+        .select("id")
+        .eq("name", recipe.name)
+        .eq("catchcopy", recipe.catchcopy || "")
+        .limit(1)
+        .single();
+
+      let dbId = existing?.id;
+
+      if (!dbId) {
+        const { data: inserted, error } = await supabase
+          .from("recipes")
+          .insert({
+            name: recipe.name,
+            texture: recipe.texture,
+            time: recipe.time,
+            servings: recipe.servings,
+            sweetness: recipe.sweetness,
+            difficulty_level: recipe.difficulty_level,
+            catchcopy: recipe.catchcopy,
+            feature: recipe.feature,
+            recommend: recipe.recommend,
+            ingredients: recipe.ingredients,
+            steps: recipe.steps,
+            fermentation: recipe.fermentation,
+            point: recipe.point,
+          })
+          .select("id")
+          .single();
+
+        if (error) throw error;
+        dbId = inserted.id;
+      }
+
+      setRecipeDbId(dbId);
+
+      // ② お気に入り状態を確認
+      const sessionId = getSessionId();
+      const { data: fav } = await supabase
+        .from("favorites")
+        .select("id")
+        .eq("recipe_id", dbId)
+        .eq("session_id", sessionId)
+        .limit(1)
+        .single();
+
+      if (fav) setFavoriteId(fav.id);
+    } catch (e) {
+      console.error("DB init error:", e);
+    }
+  };
+
+  // お気に入りトグル
+  const toggleFavorite = async () => {
+    if (!recipeDbId) return;
+    setSaving(true);
+    const sessionId = getSessionId();
+
+    try {
+      if (favoriteId) {
+        // 解除
+        await supabase.from("favorites").delete().eq("id", favoriteId);
+        setFavoriteId(null);
+      } else {
+        // 追加
+        const { data, error } = await supabase
+          .from("favorites")
+          .insert({ recipe_id: recipeDbId, session_id: sessionId })
+          .select("id")
+          .single();
+        if (error) throw error;
+        setFavoriteId(data.id);
+      }
+    } catch (e) {
+      console.error("Favorite error:", e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isFavorite = !!favoriteId;
+
   return (
     <div style={{ background: "var(--gray-bg)", minHeight: "100vh" }}>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
@@ -21,10 +120,26 @@ export default function RecipeDetail({ recipe, onBack }) {
           </button>
           <span style={{
             fontSize: 13, fontWeight: 500, color: "var(--green-deep)",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1,
           }}>
             {recipe.name}
           </span>
+
+          {/* お気に入りボタン */}
+          <button
+            onClick={toggleFavorite}
+            disabled={saving || !recipeDbId}
+            style={{
+              fontSize: 20, background: "transparent", border: "none",
+              cursor: recipeDbId ? "pointer" : "default",
+              flexShrink: 0, lineHeight: 1,
+              opacity: saving ? 0.5 : 1,
+              transition: "transform 0.15s",
+              transform: saving ? "scale(0.9)" : "scale(1)",
+            }}
+          >
+            {isFavorite ? "❤️" : "🤍"}
+          </button>
         </div>
 
         <div style={{ padding: "16px 16px 64px" }}>
@@ -50,6 +165,16 @@ export default function RecipeDetail({ recipe, onBack }) {
               }}>{recipe.servings}</span>
             )}
           </div>
+
+          {/* キャッチコピー */}
+          {recipe.catchcopy && (
+            <div style={{
+              fontSize: 13, color: "var(--green-mid)", fontWeight: 500,
+              marginBottom: 14, fontStyle: "italic",
+            }}>
+              " {recipe.catchcopy} "
+            </div>
+          )}
 
           {/* 発酵時間バナー */}
           {recipe.fermentation && (
@@ -92,10 +217,7 @@ export default function RecipeDetail({ recipe, onBack }) {
           <Section title="作り方" emoji="👨‍🍳">
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {recipe.steps.map((step, i) => {
-                // 【】で始まる見出しを太字に
-                const isHeading = step.startsWith("【");
                 const headingMatch = step.match(/^【(.+?)】(.*)$/s);
-
                 return (
                   <div key={i} style={{
                     display: "flex", gap: 12,
@@ -152,6 +274,9 @@ export default function RecipeDetail({ recipe, onBack }) {
             </Section>
           )}
 
+          {/* おすすめ食材 */}
+          <ProductRecommend recipe={recipe} />
+
           {/* フィードバック */}
           <div style={{
             border: "0.5px solid var(--gray-border)", borderRadius: 12,
@@ -180,14 +305,14 @@ export default function RecipeDetail({ recipe, onBack }) {
             </a>
           </div>
 
-          {/* 戻るボタン（下部） */}
+          {/* 戻るボタン */}
           <button onClick={onBack} style={{
             width: "100%", padding: 12, borderRadius: 10, marginTop: 8,
             background: "var(--white)", fontSize: 13,
             border: "0.5px solid var(--gray-border)", color: "var(--gray-soft)",
             cursor: "pointer",
           }}>
-             一覧へ戻る
+            ← 一覧へ戻る
           </button>
 
         </div>
@@ -199,15 +324,9 @@ export default function RecipeDetail({ recipe, onBack }) {
 function Section({ title, emoji, children }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{
-        display: "flex", alignItems: "center", gap: 6,
-        marginBottom: 10,
-      }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
         <span style={{ fontSize: 14 }}>{emoji}</span>
-        <span style={{
-          fontSize: 12, fontWeight: 600,
-          color: "var(--gray-mid)", letterSpacing: "0.04em",
-        }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-mid)", letterSpacing: "0.04em" }}>
           {title}
         </span>
       </div>
