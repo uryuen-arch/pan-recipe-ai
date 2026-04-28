@@ -4,7 +4,6 @@ const client = new Groq();
 
 function buildConditionText(conditions) {
   if (!conditions || conditions.length === 0) return "指定なし";
-
   const mapping = {
     "超簡単":         "【最重要】手間は超簡単。こね不要・混ぜるだけなど工程を極力シンプルにすること",
     "簡単":           "【最重要】手間は簡単。初心者でも失敗しにくいシンプルな工程にすること",
@@ -19,7 +18,6 @@ function buildConditionText(conditions) {
     "しっとり":       "食感はしっとりとした",
     "ハード系":       "食感はハード系（クラストがカリッとした食感）",
   };
-
   return conditions.map((c) => mapping[c] || c).join("\n- ");
 }
 
@@ -48,6 +46,9 @@ export async function POST(request) {
 - 発酵温度・時間・焼成温度・時間を必ず具体的な数値で記載する
 - 時間条件が指定されている場合は必ずその時間内に収めること
 - ポイントは失敗しないコツを2〜3文で詳しく書く
+- featureは「甘め・しっとり・牛乳使用」のように3つの特徴をカンマ区切りで簡潔に書く
+- sweetnessは「甘め」「控えめ」「中程度」のいずれか
+- difficulty_levelは「超簡単」「簡単」「普通」「本格」のいずれか
 
 以下のJSON形式のみで返してください。前後に説明文やバッククォートは絶対に不要です。
 [
@@ -56,6 +57,9 @@ export async function POST(request) {
     "texture": "食感（ふんわり／しっとり／ハード系 のいずれか）",
     "time": "所要時間（例：約45分）",
     "servings": "何個分・何斤分など",
+    "sweetness": "甘め",
+    "difficulty_level": "簡単",
+    "feature": "甘め・しっとり・牛乳使用",
     "ingredients": ["材料1 分量", "材料2 分量"],
     "steps": [
       "【下準備】内容",
