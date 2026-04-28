@@ -84,7 +84,7 @@ export async function POST(request) {
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 4000,
+      max_tokens: 800,
       temperature: 0.7,
     });
 
