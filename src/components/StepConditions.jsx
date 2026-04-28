@@ -30,7 +30,7 @@ const CONDITION_GROUPS = [
 
 const divider = { height: "0.5px", background: "rgba(0,0,0,0.08)", margin: "14px 0" };
 
-export default function StepConditions({ value, onChange, onGenerate, loading }) {
+export default function StepConditions({ value, onChange, onGenerate, loading, remaining = 3 }) {
   const toggle = (item, multi) => {
     if (multi) {
       onChange(value.includes(item) ? value.filter((v) => v !== item) : [...value, item]);
@@ -111,16 +111,22 @@ export default function StepConditions({ value, onChange, onGenerate, loading })
 
         <button
           onClick={onGenerate}
-          disabled={loading}
+          disabled={loading || remaining <= 0}
           style={{
             width: "100%", padding: 12, borderRadius: 10, marginTop: 18,
-            background: loading ? "var(--green-light)" : "var(--green-main)",
+            background: remaining <= 0
+              ? "var(--gray-border)"
+              : loading ? "var(--green-light)" : "var(--green-main)",
             color: "var(--white)", border: "none", fontSize: 13, fontWeight: 500,
-            cursor: loading ? "not-allowed" : "pointer",
+            cursor: (loading || remaining <= 0) ? "not-allowed" : "pointer",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}
         >
-          {loading ? <><span className="spinner" />レシピを生成中...</> : "レシピを生成する"}
+          {remaining <= 0
+            ? "本日の生成回数に達しました"
+            : loading
+            ? <><span className="spinner" />レシピを生成中...</>
+            : `レシピを生成する（残り${remaining}回）`}
         </button>
       </div>
     </div>

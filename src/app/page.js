@@ -5,6 +5,34 @@ import StepConditions from "../components/StepConditions";
 import RecipeList from "../components/RecipeList";
 import RecipeDetail from "../components/RecipeDetail";
 
+// 1日あたりの生成上限
+const DAILY_LIMIT = 3;
+const STORAGE_KEY = "pan_recipe_usage";
+
+// 今日の使用回数を取得
+function getTodayUsage() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    const today = new Date().toISOString().slice(0, 10); // "2025-04-28"
+    if (data.date !== today) return 0; // 日付が変わったらリセット
+    return data.count || 0;
+  } catch {
+    return 0;
+  }
+}
+
+// 使用回数を+1して保存
+function incrementUsage() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const count = getTodayUsage() + 1;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: today, count }));
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
 export default function Home() {
   const [ingredients, setIngredients] = useState("");
   const [conditions, setConditions] = useState([]);
@@ -14,9 +42,15 @@ export default function Home() {
   const [apiError, setApiError] = useState("");
   const [showConditions, setShowConditions] = useState(false);
   const [showRecipes, setShowRecipes] = useState(false);
+  const [todayCount, setTodayCount] = useState(0);
 
   const conditionsRef = useRef(null);
   const recipesRef = useRef(null);
+
+  // 初期化時に今日の使用回数を読み込む
+  useEffect(() => {
+    setTodayCount(getTodayUsage());
+  }, []);
 
   useEffect(() => {
     if (showConditions && conditionsRef.current) {
@@ -33,63 +67,16 @@ export default function Home() {
   const handleNext = () => setShowConditions(true);
 
   const handleGenerate = async () => {
+    // 上限チェック
+    if (todayCount >= DAILY_LIMIT) {
+      setApiError(`本日の生成回数（${DAILY_LIMIT}回）に達しました。明日またお試しください。`);
+      return;
+    }
+
     setLoading(true);
     setApiError("");
     setShowRecipes(false);
     setRecipes([]);
-
-
-  /*ダミーデータ（APIの代わり）
-  await new Promise((r) => setTimeout(r, 1200)); // ローディング演出
-  setRecipes([
-    {
-      name: "ふわふわミルクブレッド",
-      texture: "ふわふわ",
-      time: "約60分",
-      ingredients: ["強力粉 200g", "牛乳 130ml", "バター 20g", "砂糖 大さじ2", "ドライイースト 3g", "塩 小さじ1/2"],
-      steps: [
-        "ボウルに強力粉・砂糖・塩・イーストを入れ軽く混ぜ、牛乳を加えてひとまとめにする",
-        "バターを加えてなめらかになるまで約10分こねる",
-        "ラップをかけ温かい場所で40分一次発酵させる",
-        "4等分にして丸め直し、20分二次発酵後に200℃で12分焼く",
-      ],
-      fermentation: "一次発酵 40分 / 二次発酵 20分",
-      point: "牛乳は人肌程度に温めるとイーストが活性化しやすくなります。表面がつるっとするまでしっかりこねましょう。",
-    },
-    {
-      name: "しっとりバターロール",
-      texture: "しっとり",
-      time: "約45分",
-      ingredients: ["強力粉 180g", "バター 30g", "牛乳 120ml", "砂糖 大さじ1", "塩 小さじ1/2", "ドライイースト 2g"],
-      steps: [
-        "材料をすべてボウルに入れてまとめ、なめらかになるまでこねる",
-        "一次発酵させる（30分）",
-        "6等分にして成形し、二次発酵（15分）後に180℃で13分焼く",
-      ],
-      fermentation: "一次発酵 30分 / 二次発酵 15分",
-      point: "バターをしっかり生地に練り込むことでしっとりとした食感になります。",
-    },
-    {
-      name: "時短ちぎりパン",
-      texture: "ふわふわ",
-      time: "約30分",
-      ingredients: ["強力粉 150g", "牛乳 100ml", "バター 15g", "砂糖 小さじ2", "ドライイースト 3g"],
-      steps: [
-        "全材料を混ぜてひとまとめにし、5分こねる",
-        "一次発酵なしで8等分して型に並べる",
-        "二次発酵10分後、190℃で15分焼く",
-      ],
-      fermentation: "一次発酵 なし / 二次発酵 10分",
-      point: "イーストを多めにすることで発酵時間を短縮できます。焼きたてをちぎって食べるのがおすすめです。",
-    },
-  ]);
-  setShowRecipes(true);
-  setLoading(false);
-};
-
- ダミーデータここまで（APIの代わり）*/
-
-    //　APIを使うときは有効化
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -100,14 +87,16 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error || "生成に失敗しました");
       setRecipes(data.recipes);
       setShowRecipes(true);
+
+      // 成功したら使用回数を更新
+      const newCount = incrementUsage();
+      setTodayCount(newCount);
     } catch (e) {
       setApiError(e.message);
     } finally {
       setLoading(false);
     }
   };
-  //有効化ここまで  
-  
 
   // ── 詳細画面 ──
   if (selectedRecipe) {
@@ -118,12 +107,14 @@ export default function Home() {
     );
   }
 
+  const remaining = DAILY_LIMIT - todayCount;
+
   // ── メイン画面 ──
   return (
     <div style={{ background: "var(--gray-bg)", minHeight: "100vh", paddingBottom: 48 }}>
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px" }}>
 
-        {/* ヘッダー（ステータスバー風） */}
+        {/* ヘッダー */}
         <div style={{
           background: "var(--green-pale)",
           margin: "0 -16px",
@@ -134,7 +125,18 @@ export default function Home() {
           marginBottom: 20,
         }}>
           <span style={{ fontSize: 14, fontWeight: 500, color: "var(--green-deep)" }}>🍞 パンレシピAI</span>
-          <span style={{ fontSize: 11, color: "var(--green-mid)" }}>材料を入れてレシピ作成</span>
+          {/* 残り回数バッジ */}
+          <span style={{
+            fontSize: 11,
+            color: remaining <= 1 ? "var(--amber-dark)" : "var(--green-mid)",
+            background: remaining <= 1 ? "var(--amber-pale)" : "transparent",
+            padding: remaining <= 1 ? "2px 8px" : "0",
+            borderRadius: 20,
+          }}>
+            {remaining > 0
+              ? `今日あと${remaining}回生成できます`
+              : "本日の生成回数に達しました"}
+          </span>
         </div>
 
         {/* ── セクション① 材料入力 ── */}
@@ -169,6 +171,7 @@ export default function Home() {
               onChange={setConditions}
               onGenerate={handleGenerate}
               loading={loading}
+              remaining={remaining}
             />
           </section>
         )}
