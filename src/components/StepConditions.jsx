@@ -125,7 +125,7 @@ export default function StepConditions({ value, onChange, onGenerate, loading, r
     : "レシピを生成する"}
 </button>
 
-{/* 回数制限コメントアウト
+
         <button
           onClick={onGenerate}
           disabled={loading || remaining <= 0}
@@ -146,7 +146,7 @@ export default function StepConditions({ value, onChange, onGenerate, loading, r
             ? <><span className="spinner" />レシピを生成中...</>
             : `レシピを生成する（残り${remaining}回）`}
         </button>
-*/}
+
       </div>
     </div>
   );
