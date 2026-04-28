@@ -152,6 +152,34 @@ export default function RecipeDetail({ recipe, onBack }) {
             </Section>
           )}
 
+          {/* フィードバック */}
+          <div style={{
+            border: "0.5px solid var(--gray-border)", borderRadius: 12,
+            padding: "16px", marginTop: 8, marginBottom: 8,
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 16, marginBottom: 6 }}>📝</div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--gray-ink)", marginBottom: 4 }}>
+              このレシピどうでしたか？
+            </div>
+            <div style={{ fontSize: 11, color: "var(--gray-soft)", marginBottom: 12 }}>
+              ご意見・ご感想をお聞かせください
+            </div>
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSc-d07wzgD6k2VnNzhty6Bj-htdB0uUPDZ1Iktfi87he7PpEw/viewform?usp=publish-editor"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-block", padding: "10px 24px",
+                background: "var(--green-main)", color: "var(--white)",
+                borderRadius: 20, fontSize: 12, fontWeight: 500,
+                textDecoration: "none",
+              }}
+            >
+              フィードバックを送る →
+            </a>
+          </div>
+
           {/* 戻るボタン（下部） */}
           <button onClick={onBack} style={{
             width: "100%", padding: 12, borderRadius: 10, marginTop: 8,
@@ -159,7 +187,7 @@ export default function RecipeDetail({ recipe, onBack }) {
             border: "0.5px solid var(--gray-border)", color: "var(--gray-soft)",
             cursor: "pointer",
           }}>
-            ← 一覧へ戻る
+             一覧へ戻る
           </button>
 
         </div>
