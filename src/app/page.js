@@ -143,6 +143,12 @@ export default function Home() {
             value={ingredients}
             onChange={setIngredients}
             onNext={handleNext}
+            onEdit={() => {
+              setShowConditions(false);
+              setShowRecipes(false);
+              setRecipes([]);
+              setConditions([]);
+            }}
             done={showConditions}
           />
         </section>

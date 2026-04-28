@@ -9,7 +9,7 @@ function splitIngredients(str) {
   return str.split(/[,、]/).map((s) => s.trim()).filter(Boolean);
 }
 
-export default function StepIngredients({ value = "", onChange, onNext, done }) {
+export default function StepIngredients({ value = "", onChange, onNext, onEdit, done }) {
   const [past, setPast] = useState([]);
   const [error, setError] = useState("");
 
@@ -114,15 +114,29 @@ export default function StepIngredients({ value = "", onChange, onNext, done }) 
           </>
         )}
 
-        {!done && (
-          <button onClick={handleNext} style={{
-            width: "100%", padding: 11, borderRadius: 8, marginTop: 14,
-            background: "var(--green-main)", color: "var(--white)",
-            border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer",
-          }}>
-            次へ
-          </button>
-        )}
+        {!done ? (
+  <button
+    onClick={handleNext}
+    style={{
+      width: "100%", padding: 11, borderRadius: 8, marginTop: 14,
+      background: "var(--green-main)", color: "var(--white)",
+      border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer",
+    }}
+    >
+      次へ
+  </button>
+  ) : (
+  <button
+    onClick={onEdit}
+    style={{
+      width: "100%", padding: 11, borderRadius: 8, marginTop: 14,
+      background: "var(--white)", color: "var(--gray-soft)",
+      border: "0.5px solid var(--gray-border)", fontSize: 12, cursor: "pointer",
+    }}
+  >
+    ✏️ 材料を変更する
+  </button>
+  )}
       </div>
     </div>
   );
