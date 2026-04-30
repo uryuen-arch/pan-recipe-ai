@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { getSessionId } from "../lib/session";
-import ProductRecommend from "./ProductRecommend";
 
 export default function RecipeDetail({ recipe, onBack }) {
   const [favoriteId, setFavoriteId] = useState(null); // DBのfavorites.id
@@ -11,64 +10,80 @@ export default function RecipeDetail({ recipe, onBack }) {
 
   // 画面表示時：DBにレシピを保存 & お気に入り状態を確認
   useEffect(() => {
+    window.scrollTo(0, 0);
     initRecipe();
   }, []);
 
   const initRecipe = async () => {
-    try {
-      // ① recipesテーブルに保存（同名レシピが既にあればそれを使う）
-      const { data: existing } = await supabase
+  try {
+    const sessionId = getSessionId();
+
+    // ① まず既存レシピを検索
+    let { data: existing } = await supabase
+      .from("recipes")
+      .select("id")
+      .eq("name", recipe.name)
+      .eq("catchcopy", recipe.catchcopy || "")
+      .limit(1)
+      .maybeSingle();
+
+    let dbId = existing?.id;
+
+    // ② なければinsert
+    if (!dbId) {
+      const { data: inserted, error } = await supabase
         .from("recipes")
+        .insert({
+          name: recipe.name,
+          texture: recipe.texture,
+          time: recipe.time,
+          servings: recipe.servings,
+          sweetness: recipe.sweetness,
+          difficulty_level: recipe.difficulty_level,
+          catchcopy: recipe.catchcopy || "",
+          feature: recipe.feature,
+          recommend: recipe.recommend,
+          ingredients: recipe.ingredients,
+          steps: recipe.steps,
+          fermentation: recipe.fermentation,
+          point: recipe.point,
+        })
         .select("id")
-        .eq("name", recipe.name)
-        .eq("catchcopy", recipe.catchcopy || "")
-        .limit(1)
-        .single();
+        .maybeSingle();
 
-      let dbId = existing?.id;
-
-      if (!dbId) {
-        const { data: inserted, error } = await supabase
+      if (error && error.code === "23505") {
+        // 競合した場合は再検索
+        const { data: retry } = await supabase
           .from("recipes")
-          .insert({
-            name: recipe.name,
-            texture: recipe.texture,
-            time: recipe.time,
-            servings: recipe.servings,
-            sweetness: recipe.sweetness,
-            difficulty_level: recipe.difficulty_level,
-            catchcopy: recipe.catchcopy,
-            feature: recipe.feature,
-            recommend: recipe.recommend,
-            ingredients: recipe.ingredients,
-            steps: recipe.steps,
-            fermentation: recipe.fermentation,
-            point: recipe.point,
-          })
           .select("id")
-          .single();
-
-        if (error) throw error;
-        dbId = inserted.id;
+          .eq("name", recipe.name)
+          .eq("catchcopy", recipe.catchcopy || "")
+          .limit(1)
+          .maybeSingle();
+        dbId = retry?.id;
+      } else {
+        dbId = inserted?.id;
       }
+    }
 
-      setRecipeDbId(dbId);
+    setRecipeDbId(dbId);
 
-      // ② お気に入り状態を確認
-      const sessionId = getSessionId();
+    // ③ お気に入り状態を確認
+    if (dbId) {
       const { data: fav } = await supabase
         .from("favorites")
         .select("id")
         .eq("recipe_id", dbId)
         .eq("session_id", sessionId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (fav) setFavoriteId(fav.id);
-    } catch (e) {
-      console.error("DB init error:", e);
     }
-  };
+  } catch (e) {
+    console.error("DB init error:", e);
+  }
+};
 
   // お気に入りトグル
   const toggleFavorite = async () => {
@@ -273,9 +288,6 @@ export default function RecipeDetail({ recipe, onBack }) {
               </div>
             </Section>
           )}
-
-          {/* おすすめ食材 */}
-          <ProductRecommend recipe={recipe} />
 
           {/* フィードバック */}
           <div style={{

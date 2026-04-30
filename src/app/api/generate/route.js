@@ -1,25 +1,34 @@
 import Groq from "groq-sdk";
+import { calcRecipe, formatIngredients } from "../../../lib/baker";
+import { getStepsTemplate } from "../../../lib/steps";
 
 const client = new Groq();
 
-function buildConditionText(conditions) {
-  if (!conditions || conditions.length === 0) return "指定なし";
-  const mapping = {
-    "超簡単":           "【最重要】手間は超簡単。こね不要・混ぜるだけなど工程を極力シンプルにすること",
-    "簡単":             "【最重要】手間は簡単。初心者でも失敗しにくいシンプルな工程にすること",
-    "本格":             "【最重要】本格的な仕上がり。丁寧な工程でプロに近いクオリティを目指すこと",
-    "30分以内":         "【重要】材料を混ぜてから焼き上がりまで30分以内に収めること。発酵なしまたは超短時間発酵のレシピにすること",
-    "1時間":            "【重要】材料を混ぜてから焼き上がりまで1時間以内に収めること",
-    "一晩":             "低温長時間発酵（冷蔵庫で8〜12時間）を使った本格レシピ。翌朝焼けるスケジュールで記載すること",
-    "フライパン":       "調理方法はフライパンのみで焼けるレシピ。オーブン不要",
-    "オーブン":         "調理方法はオーブンを使用",
-    "ホームベーカリー": "調理方法はホームベーカリーを使用。捏ねと一次発酵はホームベーカリーにおまかせする工程を含めること",
-    "ふんわり":         "食感はふんわりやわらかい",
-    "しっとり":         "食感はしっとりとした",
-    "ハード系":         "食感はハード系（クラストがカリッとした食感）",
-  };
-  return conditions.map((c) => mapping[c] || c).join("\n- ");
-}
+// 条件マッピング
+const TEXTURE_MAP = {
+  "ふんわり": "ふんわり",
+  "しっとり": "しっとり",
+  "ハード系": "ハード系",
+};
+
+const TIME_MAP = {
+  "30分以内": "30分以内",
+  "1時間":    "1時間",
+  "一晩":     "一晩",
+};
+
+const METHOD_MAP = {
+  "オーブン":         "オーブン",
+  "フライパン":       "フライパン",
+  "ホームベーカリー": "ホームベーカリー",
+  "トースター":       "トースター",
+};
+
+const DIFFICULTY_MAP = {
+  "超簡単": "超簡単",
+  "簡単":   "簡単",
+  "本格":   "本格",
+};
 
 export async function POST(request) {
   try {
@@ -29,68 +38,108 @@ export async function POST(request) {
       return Response.json({ error: "材料を入力してください" }, { status: 400 });
     }
 
-    const conditionText = buildConditionText(conditions);
+    // 条件を解析
+    const texture     = conditions.find(c => TEXTURE_MAP[c])    || "ふんわり";
+    const timeCondition = conditions.find(c => TIME_MAP[c])     || "1時間";
+    const method      = conditions.find(c => METHOD_MAP[c])     || "オーブン";
+    const difficulty  = conditions.find(c => DIFFICULTY_MAP[c]) || "簡単";
 
+    // ユーザー食材リスト
+    const userIngredients = ingredients.split(/[,、]/).map(s => s.trim()).filter(Boolean);
+
+    // ─── 内部ロジックで3パターンの配合を生成 ───
+    const FLOUR_AMOUNTS = [250, 300, 350]; // 3パターンで粉量を変える
+
+    const recipeConfigs = FLOUR_AMOUNTS.map(flourGrams => {
+      const calc = calcRecipe({
+        flourGrams,
+        texture,
+        timeCondition,
+        method,
+        userIngredients,
+      });
+      const steps = getStepsTemplate(texture, method, timeCondition, calc);
+      return { calc, steps, flourGrams };
+    });
+
+    // ─── AIには名前・キャッチコピー・ポイント・特徴だけ生成させる ───
     const prompt = `あなたはパン作りの専門家です。
-以下の材料と条件をもとに、特徴の異なるパンレシピを3件生成してください。
-3件はそれぞれ個性が異なるようにしてください（例：シンプル系・リッチ系・食事系など）。
+以下の条件のパンレシピに対して、3つの個性的なバリエーションの名前とコピーを考えてください。
 
-【材料】${ingredients}
+条件：
+- 食感：${texture}
+- 時間：${timeCondition}
+- 調理方法：${method}
+- 難易度：${difficulty}
+- 使用食材：${ingredients}
 
-【条件】
-- ${conditionText}
+【レシピ名のルール】
+- 日本語のみ（英語・カタカナ横文字は禁止）
+- 「〇〇パン」「〇〇ブレッド」「〇〇ロール」のような具体的な名前にする
+- 食材や食感が伝わる名前にする（例：ふわふわミルクパン・全粒粉カンパーニュ・バターロール）
+- おしゃれすぎる横文字・造語は禁止（デリシャス〜・アルティメット〜などはNG）
+- シンプルで親しみやすい名前にする
 
-【必須ルール】
-- 材料は全てg・ml等の具体的な分量を記載する
-- stepsは最低10ステップ以上、各工程を丁寧に詳しく書く
-- 各ステップは【工程名】本文の形式で書く
-- 発酵温度・時間・焼成温度・時間を必ず具体的な数値で記載する
-- 時間条件が指定されている場合は必ずその時間内に収めること
-- catchcopyは「牛乳たっぷりでしっとりふんわり仕上げ」のような魅力的な一言キャッチコピー
-- featureは「甘め・しっとり・牛乳使用」のように3つの特徴をカンマ区切りで簡潔に
-- recommendは「一番簡単」「材料少ない」「一番美味しい」のような他との比較で際立つ一言
-- sweetnessは「甘め」「控えめ」「中程度」のいずれか
-- difficulty_levelは「超簡単」「簡単」「普通」「本格」のいずれか
+3つのバリエーション（小・中・大サイズ）それぞれに以下を考えてください：
+- name：魅力的なレシピ名
+- catchcopy：一言キャッチコピー（20文字以内）
+- feature：特徴を3つカンマ区切り（例：甘め・しっとり・牛乳使用）
+- recommend：他との比較で際立つ一言（例：一番簡単）
+- point：失敗しないコツ1〜2文
 
-以下のJSON形式のみで返してください。前後に説明文やバッククォートは絶対に不要です。
+JSON形式のみで返してください。バッククォートや説明文は不要です。
 [
-  {
-    "name": "レシピ名",
-    "catchcopy": "牛乳たっぷりでしっとりふんわり仕上げ",
-    "feature": "甘め・しっとり・牛乳使用",
-    "recommend": "一番簡単",
-    "texture": "食感（ふんわり／しっとり／ハード系 のいずれか）",
-    "time": "所要時間（例：約45分）",
-    "servings": "何個分・何斤分など",
-    "sweetness": "甘め",
-    "difficulty_level": "簡単",
-    "ingredients": ["材料1 分量", "材料2 分量"],
-    "steps": [
-      "【下準備】内容",
-      "【捏ね①】内容",
-      "【一次発酵】内容",
-      "【ガス抜き】内容",
-      "【ベンチタイム】内容",
-      "【成形】内容",
-      "【二次発酵】内容",
-      "【焼成】内容",
-      "【仕上げ】内容"
-    ],
-    "fermentation": "一次発酵 28℃・60分 / 二次発酵 35℃・30〜40分",
-    "point": "失敗しないコツを2〜3文で"
-  }
+  {"name":"","catchcopy":"","feature":"","recommend":"","point":""},
+  {"name":"","catchcopy":"","feature":"","recommend":"","point":""},
+  {"name":"","catchcopy":"","feature":"","recommend":"","point":""}
 ]`;
 
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 2000,
-      temperature: 0.7,
+      max_tokens: 800,
+      temperature: 0.8,
     });
 
     const text = completion.choices[0].message.content;
     const cleaned = text.replace(/```json|```/g, "").trim();
-    const recipes = JSON.parse(cleaned);
+    const aiData = JSON.parse(cleaned);
+
+    // ─── 内部ロジック + AI結果を合体 ───
+    const recipes = recipeConfigs.map((config, i) => {
+      const ai = aiData[i] || aiData[0];
+      const { calc, steps } = config;
+
+      return {
+        // AI生成部分
+        name:            ai.name,
+        catchcopy:       ai.catchcopy,
+        feature:         ai.feature,
+        recommend:       ai.recommend,
+        point:           ai.point,
+        // 内部ロジック部分
+        texture,
+        time:            timeCondition === "一晩" ? "翌日完成（仕込み15分）" :
+                         timeCondition === "30分以内" ? "約30分" : "約1時間",
+        servings:        `${config.flourGrams === 250 ? "6" : config.flourGrams === 300 ? "8" : "10"}個分`,
+        difficulty_level: difficulty,
+        method,
+        flourGrams:      config.flourGrams,
+        sweetness:       texture === "ふんわり" ? "甘め" : texture === "ハード系" ? "控えめ" : "中程度",
+        // 計算済み配合
+        ingredientsData: calc.ingredients,
+        ingredients:     formatIngredients(calc.ingredients),
+        // 工程テンプレート
+        steps:           steps.map(s => `【${s.label}】${s.desc}${s.time ? `（目安：${s.time}）` : ""}`),
+        stepsData:       steps,
+        // 発酵・焼成
+        fermentation:    calc.fermentation,
+        fermentConfig:   calc.fermentConfig,
+        bakingConfig:    calc.bakingConfig,
+        bakingText:      calc.bakingText,
+        yeastRatio:      calc.yeastRatio,
+      };
+    });
 
     return Response.json({ recipes });
   } catch (error) {

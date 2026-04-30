@@ -108,7 +108,7 @@ export default function StepConditions({ value, onChange, onGenerate, loading, r
             </div>
           </div>
         ))}
-
+{/*
 <button
   onClick={onGenerate}
   disabled={loading}
@@ -124,7 +124,7 @@ export default function StepConditions({ value, onChange, onGenerate, loading, r
     ? <><span className="spinner" />レシピを生成中...</>
     : "レシピを生成する"}
 </button>
-
+*/}
 
         <button
           onClick={onGenerate}
