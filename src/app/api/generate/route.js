@@ -1,7 +1,7 @@
 import Groq from "groq-sdk";
 import { calcRecipe, formatIngredients } from "../../../lib/baker";
 import { getStepsTemplate } from "../../../lib/steps";
-import { matchRecipes, extractFillings, getSubstituteNote } from "../../lib/matcher";
+import { matchRecipes, extractFillings, getSubstituteNote } from "../../../lib/matcher";
 import { createClient } from "@supabase/supabase-js";
 
 const client = new Groq();
