@@ -10,8 +10,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-const TIME_MAP      = { "30分以内": "30分以内", "1時間": "1時間", "一晩": "一晩" };
-const METHOD_MAP    = { "オーブン": "オーブン", "フライパン": "フライパン", "ホームベーカリー": "ホームベーカリー", "トースター": "トースター" };
+const TIME_MAP       = { "30分以内": "30分以内", "1時間": "1時間", "一晩": "一晩" };
+const METHOD_MAP     = { "オーブン": "オーブン", "フライパン": "フライパン", "ホームベーカリー": "ホームベーカリー", "トースター": "トースター" };
 const DIFFICULTY_MAP = { "超簡単": "超簡単", "簡単": "簡単", "本格": "本格" };
 
 export async function POST(request) {
@@ -28,7 +28,7 @@ export async function POST(request) {
 
     const userIngredients = ingredients.split(/[,、]/).map(s => s.trim()).filter(Boolean);
 
-    // ─── DBから全プロファイルを取得 ───
+    // DBから全プロファイルを取得
     const { data: profiles, error } = await supabase
       .from("bread_profiles")
       .select("*")
@@ -37,18 +37,15 @@ export async function POST(request) {
 
     if (error) throw error;
 
-    // ─── マッチング実行 ───
+    // マッチング実行
     const matched = matchRecipes(userIngredients, profiles);
-
-    // 上位3件を選択（perfectとalmost優先）
     const top3 = matched.slice(0, 3);
 
     // 具材を抽出
     const fillings = extractFillings(userIngredients);
 
-    // ─── 各プロファイルで配合と工程を計算 ───
+    // 各プロファイルで配合と工程を計算
     const FLOUR_AMOUNTS = [250, 300, 350];
-
     const recipeConfigs = top3.map((match, i) => {
       const flourGrams = FLOUR_AMOUNTS[i] || 300;
       const texture    = match.profile.texture;
@@ -57,18 +54,19 @@ export async function POST(request) {
       return { match, calc, steps, flourGrams, texture };
     });
 
-    // ─── AIには名前・コピー・ポイント・具材分量だけ生成 ───
-    const profileSummary = top3.map((m, i) => (
-      `${i + 1}. ${m.profile.type}（${m.profile.texture}・${m.category === "perfect" ? "今すぐ作れる" : `${m.missing.join("・")}が必要`}）`
-    )).join("\n");
+    // AIには名前・コピー・ポイント・具材分量だけ生成
+    const profileSummary = top3.map((m, i) =>
+      `${i + 1}. ${m.profile.type}（${m.profile.texture}・${m.category === "perfect" ? "今すぐ作れる" : m.missing.join("・") + "が必要"}）`
+    ).join("\n");
 
-    const fillingsPrompt = fillings.length > 0
-  ? `\n【具材の分量指示】（必須）
-以下の具材は必ずfillingsに追加してください：${fillings.join("・")}
-粉量300gに対するベーカーズ%と分量(g)、下処理メモを記載してください。
-例：{"name":"ベーコン","grams":60,"ratio":20,"note":"1cm幅に切る"}
-絶対に空配列[]にしないでください。`
-  : "";
+    const fillingsText = fillings.length > 0
+      ? `\n【具材の分量指示】（必須）\n以下の具材は必ずfillingsに追加してください：${fillings.join("・")}\n粉量300gに対するベーカーズ%と分量(g)、下処理メモを記載してください。\n例：{"name":"ベーコン","grams":60,"ratio":20,"note":"1cm幅に切る"}\n絶対に空配列[]にしないでください。`
+      : "";
+
+    const exampleFilling = fillings.length > 0
+      ? `[{"name":"${fillings[0]}","grams":60,"ratio":20,"note":"下処理メモ"}]`
+      : "[]";
+
     const prompt = `あなたはパン作りの専門家です。
 以下の3種類のパンに対して、それぞれ名前とコピーを考えてください。
 
@@ -80,7 +78,7 @@ ${profileSummary}
 - 調理方法：${method}
 - 難易度：${difficulty}
 - 使用食材：${ingredients}
-${fillingsPrompt}
+${fillingsText}
 
 【レシピ名のルール】
 - 日本語のみ（英語・カタカナ横文字は禁止）
@@ -94,14 +92,14 @@ ${fillingsPrompt}
 - feature：特徴3つカンマ区切り
 - recommend：他との比較で際立つ一言
 - point：失敗しないコツ1〜2文
-- fillings：具材リスト（なければ[]）
+- fillings：具材リスト
 
 JSON形式のみ。バッククォートや説明文は不要です。
 [
-  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":[{"name":"ベーコン","grams":60,"ratio":20,"note":"1cm幅に切る"}]},
-  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":[{"name":"ベーコン","grams":60,"ratio":20,"note":"1cm幅に切る"}]},
-  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":[{"name":"ベーコン","grams":60,"ratio":20,"note":"1cm幅に切る"}]}
-]
+  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}},
+  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}},
+  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}}
+]`;
 
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
@@ -117,10 +115,10 @@ JSON形式のみ。バッククォートや説明文は不要です。
     const servingsMap = { 250: "6個分", 300: "8個分", 350: "10個分" };
 
     const recipes = recipeConfigs.map((config, i) => {
-      const ai      = aiData[i] || aiData[0];
+      const ai = aiData[i] || aiData[0];
       const { match, calc, steps, flourGrams, texture } = config;
 
-      // 具材スケール
+      // 具材をflouGramsにスケール
       const fillingsData = (ai.fillings || []).map(f => ({
         name:      f.name,
         grams:     Math.round((f.grams || 0) * flourGrams / 300),
@@ -136,19 +134,16 @@ JSON形式のみ。バッククォートや説明文は不要です。
       ];
 
       return {
-        // AI生成
         name:            ai.name,
         catchcopy:       ai.catchcopy,
         feature:         ai.feature,
         recommend:       ai.recommend,
         point:           ai.point,
         fillings:        fillingsData,
-        // マッチング情報
         category:        match.category,
         missing:         match.missing,
         substituted:     match.substituted,
         substituteNote:  getSubstituteNote(match.substituted),
-        // 内部ロジック
         texture,
         time:            timeCondition === "一晩"     ? "翌日完成（仕込み15分）" :
                          timeCondition === "30分以内" ? "約30分" : "約1時間",
