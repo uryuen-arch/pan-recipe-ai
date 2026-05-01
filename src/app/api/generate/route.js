@@ -63,9 +63,12 @@ export async function POST(request) {
     )).join("\n");
 
     const fillingsPrompt = fillings.length > 0
-      ? `\n【具材の分量指示】\n以下の具材の分量をベーカーズ%(粉量300g基準)で決めてください：${fillings.join("・")}\nfillingsに追加してください。`
-      : "";
-
+  ? `\n【具材の分量指示】（必須）
+以下の具材は必ずfillingsに追加してください：${fillings.join("・")}
+粉量300gに対するベーカーズ%と分量(g)、下処理メモを記載してください。
+例：{"name":"ベーコン","grams":60,"ratio":20,"note":"1cm幅に切る"}
+絶対に空配列[]にしないでください。`
+  : "";
     const prompt = `あなたはパン作りの専門家です。
 以下の3種類のパンに対して、それぞれ名前とコピーを考えてください。
 
@@ -95,10 +98,10 @@ ${fillingsPrompt}
 
 JSON形式のみ。バッククォートや説明文は不要です。
 [
-  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":[]},
-  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":[]},
-  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":[]}
-]`;
+  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":[{"name":"ベーコン","grams":60,"ratio":20,"note":"1cm幅に切る"}]},
+  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":[{"name":"ベーコン","grams":60,"ratio":20,"note":"1cm幅に切る"}]},
+  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":[{"name":"ベーコン","grams":60,"ratio":20,"note":"1cm幅に切る"}]}
+]
 
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
