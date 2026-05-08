@@ -7,40 +7,52 @@ const BASE_STEPS = {
   "ふんわり_オーブン": [
     {
       label: "下準備",
-      desc: (r) => `無塩バターは室温に戻す。${r.method === "オーブン" ? "型に薄く油を塗る。" : ""}牛乳は人肌（35℃程度）に温める。`,
+      desc: (r) => {
+        const hasButterInProfile = (r.profile?.butter || 0) > 0;
+        const isHard = r.texture === "ハード系";
+        if (isHard) return "水は人肌（30℃程度）に温める。オーブン庫内に天板を入れて予熱の準備をする。";
+        return `${hasButterInProfile ? "無塩バターは室温に戻す。" : ""}型に薄く油を塗る。牛乳は人肌（35℃程度）に温める。`;
+      },
       time: null,
     },
     {
       label: "混ぜる",
-      desc: () => "ボウルに強力粉・砂糖・塩を入れて軽く混ぜる。温めた牛乳にドライイーストを溶かして加え、カードや手でひとまとめにする。",
+      desc: (r) => {
+        const isHard = r.texture === "ハード系";
+        return isHard
+          ? "ボウルに強力粉・塩・砂糖を入れて混ぜる。水にドライイーストを溶かして加え、ひとまとめにする。"
+          : "ボウルに強力粉・砂糖・塩を入れて軽く混ぜる。温めた牛乳にドライイーストを溶かして加え、カードや手でひとまとめにする。";
+      },
       time: null,
     },
     {
       label: "捏ね",
-      desc: () => "台に出して8〜10分こねる。表面がなめらかになったら室温のバターを加え、さらに5分こねる。生地を薄く伸ばして半透明の膜（グルテン膜）ができればOK。",
+      desc: (r) => {
+        const hasButterInProfile = (r.profile?.butter || 0) > 0;
+        const isHard = r.texture === "ハード系";
+        if (isHard) return "台に出して10〜15分こねる。ハード系は少し硬めの生地感でOK。表面がなめらかになれば完了。";
+        return hasButterInProfile
+          ? "台に出して8〜10分こねる。表面がなめらかになったら室温のバターを加え、さらに5分こねる。薄く伸ばして半透明の膜（グルテン膜）ができればOK。"
+          : "台に出して10〜15分こねる。表面がなめらかになれば完了。グルテン膜ができるまでしっかりこねる。";
+      },
       time: "約15分",
     },
     {
       label: "一次発酵",
-      desc: (r) => `丸めてボウルに入れラップをかけ、${r.fermentConfig.first.temp}℃で発酵させる。指で押して跡がゆっくり戻ればOK。`,
+      desc: (r) => `丸めてボウルに入れラップをかけ、${r.fermentConfig.first.temp}℃で発酵させる。${r.texture === "ハード系" ? "2倍程度に膨らめばOK。" : "指で押して跡がゆっくり戻ればOK。"}`,
       time: (r) => `${r.fermentConfig.first.temp}℃・${r.fermentConfig.first.time}分`,
     },
     {
       label: "ガス抜き・分割",
-      desc: () => "打ち粉をした台に出し、手のひらで軽く押してガスを抜く。均等に分割して丸め直す。",
+      desc: (r) => r.texture === "ハード系"
+        ? "打ち粉をした台に出し、やさしくガスを抜く。均等に分割して丸め直す。"
+        : "打ち粉をした台に出し、手のひらで軽く押してガスを抜く。均等に分割して丸め直す。",
       time: null,
     },
     {
       label: "ベンチタイム",
       desc: () => "丸めた生地に濡れ布巾をかけて休ませる。生地がリラックスして成形しやすくなる。",
       time: "10〜15分",
-    },
-    {
-      label: "成形",
-      desc: (r) => r.texture === "ハード系"
-        ? "バゲットは細長く、ブールは丸く成形する。とじ目を下にしてクッキングシートを敷いた天板に並べる。"
-        : "ガスを抜きながら好みの形に成形する。とじ目をしっかり閉じて型や天板に並べる。",
-      time: null,
     },
     {
       label: "成形",
@@ -62,13 +74,6 @@ const BASE_STEPS = {
         ? `表面にクープ（切り込み）を入れる。${r.bakingConfig.temp}℃に予熱したオーブンで${r.bakingConfig.time}分焼く。最初の10分は蒸気を出すと皮がパリッと仕上がる。`
         : `オーブンを${r.bakingConfig.temp}℃に予熱する。${r.bakingConfig.time}分焼く。焼き色がついたらアルミホイルをかぶせてOK。`,
       time: (r) => `${r.bakingConfig.temp}℃・${r.bakingConfig.time}分`,
-    },
-    {
-      label: "仕上げ",
-      desc: (r) => r.texture === "ハード系"
-        ? "網の上で冷ます。粗熱が取れてからカットすると断面がきれい。"
-        : "焼き上がったらすぐ型から出し、網の上で側面を下にして冷ます。粗熱が取れたら完成。",
-      time: null,
     },
     {
       label: "仕上げ",
@@ -239,42 +244,30 @@ const BASE_STEPS = {
     },
     {
       label: "成形",
-      desc: (r) => {
-        const isHard = r.texture === "ハード系";
-        return isHard
-          ? "バゲットは細長く、ブールは丸く成形する。とじ目を下にしてクッキングシートを敷いた天板に並べる。"
-          : "好みの形に成形し、とじ目を下にして型や天板に並べる。";
-      },
+      desc: (r) => r.texture === "ハード系"
+        ? "バゲットは細長く、ブールは丸く成形する。とじ目を下にしてクッキングシートを敷いた天板に並べる。"
+        : "好みの形に成形し、とじ目を下にして型や天板に並べる。",
       time: null,
     },
     {
       label: "二次発酵",
-      desc: (r) => {
-        const isHard = r.texture === "ハード系";
-        return isHard
-          ? `${r.fermentConfig.second.temp}℃で発酵させる。1.5倍程度に膨らめばOK。`
-          : `${r.fermentConfig.second.temp}℃で発酵させる。型の8〜9分目まで膨らめばOK。`;
-      },
+      desc: (r) => r.texture === "ハード系"
+        ? `${r.fermentConfig.second.temp}℃で発酵させる。1.5倍程度に膨らめばOK。`
+        : `${r.fermentConfig.second.temp}℃で発酵させる。型の8〜9分目まで膨らめばOK。`,
       time: (r) => `${r.fermentConfig.second.temp}℃・${r.fermentConfig.second.time}分`,
     },
     {
       label: "クープ・焼成",
-      desc: (r) => {
-        const isHard = r.texture === "ハード系";
-        return isHard
-          ? `表面にクープ（切り込み）を入れる。${r.bakingConfig.temp}℃に予熱したオーブンで${r.bakingConfig.time}分焼く。最初の10分は蒸気を出すと皮がパリッと仕上がる。`
-          : `${r.bakingConfig.temp}℃に予熱したオーブンで${r.bakingConfig.time}分焼く。焼き色がついたらアルミホイルをかぶせてOK。`;
-      },
+      desc: (r) => r.texture === "ハード系"
+        ? `表面にクープ（切り込み）を入れる。${r.bakingConfig.temp}℃に予熱したオーブンで${r.bakingConfig.time}分焼く。最初の10分は蒸気を出すと皮がパリッと仕上がる。`
+        : `${r.bakingConfig.temp}℃に予熱したオーブンで${r.bakingConfig.time}分焼く。焼き色がついたらアルミホイルをかぶせてOK。`,
       time: (r) => `${r.bakingConfig.temp}℃・${r.bakingConfig.time}分`,
     },
     {
       label: "仕上げ",
-      desc: (r) => {
-        const isHard = r.texture === "ハード系";
-        return isHard
-          ? "網の上で冷ます。粗熱が取れてからカットすると断面がきれい。"
-          : "型から出して網の上で冷ます。";
-      },
+      desc: (r) => r.texture === "ハード系"
+        ? "網の上で冷ます。粗熱が取れてからカットすると断面がきれい。"
+        : "型から出して網の上で冷ます。",
       time: null,
     },
   ],
@@ -284,7 +277,6 @@ const BASE_STEPS = {
 // 工程テンプレートを取得
 // ─────────────────────────────────────
 export function getStepsTemplate(texture, method, timeCondition, recipeData) {
-  // 一晩発酵は専用テンプレート
   if (timeCondition === "一晩") {
     const template = BASE_STEPS["一晩_オーブン"];
     return resolveSteps(template, { ...recipeData, texture });
@@ -298,7 +290,6 @@ export function getStepsTemplate(texture, method, timeCondition, recipeData) {
   return resolveSteps(template, { ...recipeData, texture });
 }
 
-// テンプレートの関数を実際の値に解決
 function resolveSteps(template, recipeData) {
   return template.map((step, i) => ({
     index: i + 1,
