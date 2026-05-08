@@ -65,7 +65,7 @@ const BASE_STEPS = {
       label: "二次発酵",
       desc: (r) => r.texture === "ハード系"
         ? `${r.fermentConfig.second.temp}℃で発酵させる。1.5倍程度に膨らめばOK。`
-        : `${r.fermentConfig.second.temp}℃で発酵させる。型の8〜9分目まで膨らめばOK。`,
+        : `${r.fermentConfig.second.temp}℃で発酵させる。1.5倍程度に膨らめばOK。`,
       time: (r) => `${r.fermentConfig.second.temp}℃・${r.fermentConfig.second.time}分`,
     },
     {
@@ -253,7 +253,7 @@ const BASE_STEPS = {
       label: "二次発酵",
       desc: (r) => r.texture === "ハード系"
         ? `${r.fermentConfig.second.temp}℃で発酵させる。1.5倍程度に膨らめばOK。`
-        : `${r.fermentConfig.second.temp}℃で発酵させる。型の8〜9分目まで膨らめばOK。`,
+        : `${r.fermentConfig.second.temp}℃で発酵させる。1.5倍程度に膨らめばOK。`,
       time: (r) => `${r.fermentConfig.second.temp}℃・${r.fermentConfig.second.time}分`,
     },
     {
