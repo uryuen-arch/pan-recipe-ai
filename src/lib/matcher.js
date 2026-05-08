@@ -41,6 +41,9 @@ function hasIngredient(normalizedList, target) {
   );
 }
 
+// 代替不可の材料（ユーザーが持っていない場合は必ずlackingにする）
+const NO_SUBSTITUTE = new Set(["卵"]);
+
 // ─────────────────────────────────────
 // メイン：マッチングスコアを計算
 // ─────────────────────────────────────
@@ -62,15 +65,18 @@ export function matchRecipes(userIngredients, profiles) {
       if (hasIngredient(normalized, req)) {
         score += 3;
         matched.push(req);
+      } else if (NO_SUBSTITUTE.has(req)) {
+        // 代替不可材料が足りない場合は大きくマイナス
+        missing.push(req);
+        score -= 5;
       } else if (subs[req]) {
-        // 代替材料があるか確認
         const sub = subs[req];
         if (hasIngredient(normalized, sub)) {
           score += 1;
           substituted.push({ original: req, substitute: sub });
         } else {
           missing.push(req);
-          score -= 1; // 必須材料が不足はマイナス
+          score -= 1;
         }
       } else {
         missing.push(req);
@@ -87,13 +93,15 @@ export function matchRecipes(userIngredients, profiles) {
     }
 
     // ③ 分類を決定
+    // 代替不可材料が不足している場合は必ずlacking
+    const hasNoSubstituteMissing = missing.some(m => NO_SUBSTITUTE.has(m));
     let category;
-    if (missing.length === 0) {
-      category = "perfect";   // 今すぐ作れる
-    } else if (missing.length <= 2) {
-      category = "almost";    // あとこれがあれば
+    if (hasNoSubstituteMissing || missing.length > 2) {
+      category = "lacking";
+    } else if (missing.length === 0) {
+      category = "perfect";
     } else {
-      category = "lacking";   // 材料が足りない
+      category = "almost";
     }
 
     return {
@@ -106,7 +114,6 @@ export function matchRecipes(userIngredients, profiles) {
     };
   })
   .sort((a, b) => {
-    // カテゴリ優先順位: perfect > almost > lacking
     const catOrder = { perfect: 0, almost: 1, lacking: 2 };
     if (catOrder[a.category] !== catOrder[b.category]) {
       return catOrder[a.category] - catOrder[b.category];

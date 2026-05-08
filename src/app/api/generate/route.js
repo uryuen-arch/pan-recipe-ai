@@ -50,7 +50,7 @@ export async function POST(request) {
       const flourGrams = FLOUR_AMOUNTS[i] || 300;
       const texture    = match.profile.texture;
       const calc  = calcRecipe({ flourGrams, profile: match.profile, timeCondition, method, userIngredients });
-      const steps = getStepsTemplate(texture, method, timeCondition, calc);
+      const steps = getStepsTemplate(texture, method, timeCondition, { ...calc, profile: match.profile });
       return { match, calc, steps, flourGrams, texture };
     });
 

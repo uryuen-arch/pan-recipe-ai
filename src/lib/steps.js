@@ -37,22 +37,30 @@ const BASE_STEPS = {
     },
     {
       label: "成形",
-      desc: () => "ガスを抜きながら好みの形に成形する。とじ目をしっかり閉じて型や天板に並べる。",
+      desc: (r) => r.texture === "ハード系"
+        ? "バゲットは細長く、ブールは丸く成形する。とじ目を下にしてクッキングシートを敷いた天板に並べる。"
+        : "ガスを抜きながら好みの形に成形する。とじ目をしっかり閉じて型や天板に並べる。",
       time: null,
     },
     {
       label: "二次発酵",
-      desc: (r) => `${r.fermentConfig.second.temp}℃で発酵させる。型の8〜9分目まで膨らめばOK。`,
+      desc: (r) => r.texture === "ハード系"
+        ? `${r.fermentConfig.second.temp}℃で発酵させる。1.5倍程度に膨らめばOK。`
+        : `${r.fermentConfig.second.temp}℃で発酵させる。型の8〜9分目まで膨らめばOK。`,
       time: (r) => `${r.fermentConfig.second.temp}℃・${r.fermentConfig.second.time}分`,
     },
     {
       label: "焼成",
-      desc: (r) => `オーブンを${r.bakingConfig.temp}℃に予熱する。${r.bakingConfig.time}分焼く。焼き色がついたらアルミホイルをかぶせてOK。`,
+      desc: (r) => r.texture === "ハード系"
+        ? `表面にクープ（切り込み）を入れる。${r.bakingConfig.temp}℃に予熱したオーブンで${r.bakingConfig.time}分焼く。最初の10分は蒸気を出すと皮がパリッと仕上がる。`
+        : `オーブンを${r.bakingConfig.temp}℃に予熱する。${r.bakingConfig.time}分焼く。焼き色がついたらアルミホイルをかぶせてOK。`,
       time: (r) => `${r.bakingConfig.temp}℃・${r.bakingConfig.time}分`,
     },
     {
       label: "仕上げ",
-      desc: () => "焼き上がったらすぐ型から出し、網の上で側面を下にして冷ます。粗熱が取れたら完成。",
+      desc: (r) => r.texture === "ハード系"
+        ? "網の上で冷ます。粗熱が取れてからカットすると断面がきれい。"
+        : "焼き上がったらすぐ型から出し、網の上で側面を下にして冷ます。粗熱が取れたら完成。",
       time: null,
     },
   ],
@@ -184,12 +192,20 @@ const BASE_STEPS = {
   "一晩_オーブン": [
     {
       label: "下準備（前日夜）",
-      desc: () => "材料を計量する。水は冷水（10℃程度）を使う。バターは小さく切っておく。",
+      desc: (r) => {
+        const hasButterInProfile = (r.profile?.butter || 0) > 0;
+        return `材料を計量する。水は冷水（10℃程度）を使う。${hasButterInProfile ? "バターは小さく切っておく。" : ""}`;
+      },
       time: null,
     },
     {
       label: "混ぜる・捏ね（前日夜）",
-      desc: () => "粉類と水・イーストを混ぜてひとまとめにし、バターを加えて8〜10分こねる。グルテン膜ができればOK。",
+      desc: (r) => {
+        const hasButterInProfile = (r.profile?.butter || 0) > 0;
+        return hasButterInProfile
+          ? "粉類と水・イーストを混ぜてひとまとめにし、バターを加えて8〜10分こねる。グルテン膜ができればOK。"
+          : "粉類と水・イーストを混ぜてひとまとめにし、10〜15分こねる。グルテン膜ができればOK。";
+      },
       time: "約15分",
     },
     {
@@ -209,22 +225,42 @@ const BASE_STEPS = {
     },
     {
       label: "成形",
-      desc: () => "好みの形に成形し、型や天板に並べる。",
+      desc: (r) => {
+        const isHard = r.texture === "ハード系";
+        return isHard
+          ? "バゲットは細長く、ブールは丸く成形する。とじ目を下にしてクッキングシートを敷いた天板に並べる。"
+          : "好みの形に成形し、とじ目を下にして型や天板に並べる。";
+      },
       time: null,
     },
     {
       label: "二次発酵",
-      desc: (r) => `${r.fermentConfig.second.temp}℃で発酵させる。型の8〜9分目まで膨らめばOK。`,
+      desc: (r) => {
+        const isHard = r.texture === "ハード系";
+        return isHard
+          ? `${r.fermentConfig.second.temp}℃で発酵させる。1.5倍程度に膨らめばOK。`
+          : `${r.fermentConfig.second.temp}℃で発酵させる。型の8〜9分目まで膨らめばOK。`;
+      },
       time: (r) => `${r.fermentConfig.second.temp}℃・${r.fermentConfig.second.time}分`,
     },
     {
-      label: "焼成",
-      desc: (r) => `${r.bakingConfig.temp}℃に予熱したオーブンで${r.bakingConfig.time}分焼く。`,
+      label: "クープ・焼成",
+      desc: (r) => {
+        const isHard = r.texture === "ハード系";
+        return isHard
+          ? `表面にクープ（切り込み）を入れる。${r.bakingConfig.temp}℃に予熱したオーブンで${r.bakingConfig.time}分焼く。最初の10分は蒸気を出すと皮がパリッと仕上がる。`
+          : `${r.bakingConfig.temp}℃に予熱したオーブンで${r.bakingConfig.time}分焼く。焼き色がついたらアルミホイルをかぶせてOK。`;
+      },
       time: (r) => `${r.bakingConfig.temp}℃・${r.bakingConfig.time}分`,
     },
     {
       label: "仕上げ",
-      desc: () => "型から出して網の上で冷ます。",
+      desc: (r) => {
+        const isHard = r.texture === "ハード系";
+        return isHard
+          ? "網の上で冷ます。粗熱が取れてからカットすると断面がきれい。"
+          : "型から出して網の上で冷ます。";
+      },
       time: null,
     },
   ],
@@ -237,7 +273,7 @@ export function getStepsTemplate(texture, method, timeCondition, recipeData) {
   // 一晩発酵は専用テンプレート
   if (timeCondition === "一晩") {
     const template = BASE_STEPS["一晩_オーブン"];
-    return resolveSteps(template, recipeData);
+    return resolveSteps(template, { ...recipeData, texture });
   }
 
   const key = `${texture}_${method}`;
@@ -245,7 +281,7 @@ export function getStepsTemplate(texture, method, timeCondition, recipeData) {
     || BASE_STEPS[`${texture}_オーブン`]
     || BASE_STEPS["ふんわり_オーブン"];
 
-  return resolveSteps(template, recipeData);
+  return resolveSteps(template, { ...recipeData, texture });
 }
 
 // テンプレートの関数を実際の値に解決
