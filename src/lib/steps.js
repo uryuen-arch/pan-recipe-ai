@@ -43,6 +43,13 @@ const BASE_STEPS = {
       time: null,
     },
     {
+      label: "成形",
+      desc: (r) => r.texture === "ハード系"
+        ? "バゲットは細長く、ブールは丸く成形する。とじ目を下にしてクッキングシートを敷いた天板に並べる。"
+        : "ガスを抜きながら好みの形に成形する。とじ目をしっかり閉じて型や天板に並べる。",
+      time: null,
+    },
+    {
       label: "二次発酵",
       desc: (r) => r.texture === "ハード系"
         ? `${r.fermentConfig.second.temp}℃で発酵させる。1.5倍程度に膨らめばOK。`
@@ -55,6 +62,13 @@ const BASE_STEPS = {
         ? `表面にクープ（切り込み）を入れる。${r.bakingConfig.temp}℃に予熱したオーブンで${r.bakingConfig.time}分焼く。最初の10分は蒸気を出すと皮がパリッと仕上がる。`
         : `オーブンを${r.bakingConfig.temp}℃に予熱する。${r.bakingConfig.time}分焼く。焼き色がついたらアルミホイルをかぶせてOK。`,
       time: (r) => `${r.bakingConfig.temp}℃・${r.bakingConfig.time}分`,
+    },
+    {
+      label: "仕上げ",
+      desc: (r) => r.texture === "ハード系"
+        ? "網の上で冷ます。粗熱が取れてからカットすると断面がきれい。"
+        : "焼き上がったらすぐ型から出し、網の上で側面を下にして冷ます。粗熱が取れたら完成。",
+      time: null,
     },
     {
       label: "仕上げ",
