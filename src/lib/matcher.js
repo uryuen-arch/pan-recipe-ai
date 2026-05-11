@@ -41,14 +41,23 @@ function hasIngredient(normalizedList, target) {
   );
 }
 
-// 代替不可の材料（ユーザーが持っていない場合は必ずlackingにする）
-const NO_SUBSTITUTE = new Set(["卵"]);
+// 基本材料（常に持っているとみなす）
+const BASE_ALWAYS_HAVE = [
+  "強力粉", "イースト", "ドライイースト", "塩", "水",
+];
+
+// 代替不可の材料
+const NO_SUBSTITUTE = new Set(["卵", "バター"]);
 
 // ─────────────────────────────────────
 // メイン：マッチングスコアを計算
 // ─────────────────────────────────────
 export function matchRecipes(userIngredients, profiles) {
-  const normalized = normalizeUserIngredients(userIngredients);
+  // 基本材料を自動追加してからマッチング
+  const normalized = normalizeUserIngredients([
+    ...userIngredients,
+    ...BASE_ALWAYS_HAVE,
+  ]);
 
   return profiles.map(profile => {
     let score = 0;
