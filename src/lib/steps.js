@@ -313,6 +313,96 @@ const SPECIAL_STEPS = {
     { label: "焼成", desc: (r) => `${r.bakingConfig?.temp || 220}℃に予熱したオーブンで${r.bakingConfig?.time || 20}分焼く。表面がこんがりきつね色になればOK。`, time: (r) => `${r.bakingConfig?.temp || 220}℃・${r.bakingConfig?.time || 20}分` },
     { label: "仕上げ", desc: () => "焼き上がったらすぐ型から出して網の上で冷ます。温かいうちが一番おいしい。", time: null },
   ],
+
+  "stollen": [
+    { label: "下準備", desc: () => "ドライフルーツ類はラム酒またはブランデーに一晩漬けておく。バターは室温に戻す。", time: "一晩漬け込み" },
+    { label: "生地を作る", desc: () => "ボウルに強力粉・砂糖・塩・イーストを入れ混ぜる。牛乳・卵・バターを加えてひとまとめにし、なめらかになるまでこねる。", time: "約15分" },
+    { label: "具材を混ぜる", desc: () => "漬け込んだドライフルーツ・ナッツ類・スパイス（シナモン・カルダモンなど）を生地に折り込むように混ぜる。", time: null },
+    { label: "一次発酵", desc: (r) => `ラップをかけて${r.fermentConfig?.first?.temp || 28}℃で発酵させる。1.5倍程度に膨らめばOK。`, time: (r) => `${r.fermentConfig?.first?.temp || 28}℃・${r.fermentConfig?.first?.time || 60}分` },
+    { label: "成形", desc: () => "生地を楕円形に伸ばし、中央より少しずらした位置で折り畳む（シュトーレン形）。型は使わず天板のクッキングシートの上に置く。", time: null },
+    { label: "二次発酵", desc: (r) => `${r.fermentConfig?.second?.temp || 35}℃で発酵させる。ひとまわり大きくなればOK。`, time: (r) => `${r.fermentConfig?.second?.temp || 35}℃・${r.fermentConfig?.second?.time || 30}分` },
+    { label: "焼成", desc: (r) => `${r.bakingConfig?.temp || 170}℃に予熱したオーブンで${r.bakingConfig?.time || 40}分焼く。表面がきつね色になり竹串を刺して何もつかなければOK。`, time: (r) => `${r.bakingConfig?.temp || 170}℃・${r.bakingConfig?.time || 40}分` },
+    { label: "仕上げ（重要）", desc: () => "焼き上がったら熱いうちに溶かしバターを表面全体にたっぷり塗る。粗熱が取れたら粉糖をたっぷりふりかける。ラップで包んで数日〜数週間熟成させると味が深まる。", time: null },
+  ],
+
+  "brioche": [
+    { label: "下準備", desc: () => "バターは室温に戻してやわらかくしておく。ブリオッシュ型またはマフィン型に薄くバターを塗る。", time: null },
+    { label: "生地を作る", desc: () => "ボウルに強力粉・砂糖・塩・イーストを入れ混ぜる。溶き卵と牛乳を加えてひとまとめにし、なめらかになるまでこねる。", time: "約10分" },
+    { label: "バターを加える", desc: () => "やわらかくしたバターを少しずつ加えながらこねる。バターが多いので根気よく混ぜ込む。生地がなめらかでツヤが出ればOK。", time: "約15分" },
+    { label: "一次発酵", desc: (r) => `ラップをかけて${r.fermentConfig?.first?.temp || 28}℃で発酵させる。2倍程度に膨らめばOK。`, time: (r) => `${r.fermentConfig?.first?.temp || 28}℃・${r.fermentConfig?.first?.time || 60}分` },
+    { label: "パンチ・冷蔵発酵", desc: () => "軽くガスを抜いてラップに包み、冷蔵庫で一晩休ませる。冷やすことでバターが締まり成形しやすくなる。", time: "冷蔵庫・8時間以上" },
+    { label: "分割・成形", desc: () => "冷蔵庫から出して常温に15分置く。分割して丸め、型に入れる。テット（頭つき）にする場合は大小2個に分けて重ねる。", time: "15分" },
+    { label: "二次発酵", desc: (r) => `${r.fermentConfig?.second?.temp || 35}℃で発酵させる。型の8分目まで膨らめばOK。`, time: (r) => `${r.fermentConfig?.second?.temp || 35}℃・${r.fermentConfig?.second?.time || 40}分` },
+    { label: "焼成", desc: (r) => `表面に溶き卵黄を薄く塗る。${r.bakingConfig?.temp || 180}℃に予熱したオーブンで${r.bakingConfig?.time || 18}分焼く。きれいな黄金色になればOK。`, time: (r) => `${r.bakingConfig?.temp || 180}℃・${r.bakingConfig?.time || 18}分` },
+    { label: "仕上げ", desc: () => "型からすぐに出して網の上で冷ます。リッチな香りが広がる。", time: null },
+  ],
+
+  "pretzel": [
+    { label: "生地を作る", desc: () => "ボウルに強力粉・砂糖・塩・イーストを入れ混ぜる。水とバターを加えてひとまとめにし、なめらかになるまでこねる。", time: "約10分" },
+    { label: "一次発酵", desc: (r) => `ラップをかけて${r.fermentConfig?.first?.temp || 28}℃で発酵させる。1.5倍程度に膨らめばOK。`, time: (r) => `${r.fermentConfig?.first?.temp || 28}℃・${r.fermentConfig?.first?.time || 30}分` },
+    { label: "分割・成形", desc: () => "8等分にして細長く伸ばし（約60cm）、U字に曲げてねじってプレッツェル形に成形する。天板に並べて冷凍庫で15分冷やす。", time: "15分" },
+    { label: "重曹液の準備", desc: () => "大きな鍋に水1Lを沸かし、重曹大さじ3（またはラウゲン液）を加える。プレッツェルを片面30秒ずつくぐらせる。これが独特の茶色い皮と風味の秘訣。", time: "片面30秒×2" },
+    { label: "仕上げ・焼成", desc: (r) => `クッキングシートを敷いた天板に並べ、岩塩を振る。${r.bakingConfig?.temp || 200}℃に予熱したオーブンで${r.bakingConfig?.time || 15}分焼く。深い茶色になればOK。`, time: (r) => `${r.bakingConfig?.temp || 200}℃・${r.bakingConfig?.time || 15}分` },
+    { label: "完成", desc: () => "網の上で冷ます。温かいうちが一番おいしい。マスタードやチーズディップと一緒に。", time: null },
+  ],
+
+  "donut": [
+    { label: "生地を作る", desc: () => "ボウルに強力粉・砂糖・塩・イーストを入れ混ぜる。卵・牛乳・バターを加えてひとまとめにし、なめらかになるまでこねる。", time: "約12分" },
+    { label: "一次発酵", desc: (r) => `ラップをかけて${r.fermentConfig?.first?.temp || 28}℃で発酵させる。2倍程度に膨らめばOK。`, time: (r) => `${r.fermentConfig?.first?.temp || 28}℃・${r.fermentConfig?.first?.time || 60}分` },
+    { label: "成形", desc: () => "生地を1cm厚さに伸ばし、ドーナツ型（直径8cmと3cm）で抜く。または分割して丸め、指で穴を開ける。クッキングシートの上に並べる。", time: null },
+    { label: "二次発酵", desc: (r) => `${r.fermentConfig?.second?.temp || 35}℃で発酵させる。ひとまわり大きくふっくらすればOK。`, time: (r) => `${r.fermentConfig?.second?.temp || 35}℃・${r.fermentConfig?.second?.time || 30}分` },
+    { label: "揚げる", desc: () => "揚げ油を170℃に熱する。シートごとそっと油に入れ、シートをはずす。片面2分ずつこんがりきつね色になるまで揚げる。", time: "片面約2分" },
+    { label: "仕上げ", desc: () => "油をきって粗熱をとる。グラニュー糖をまぶすか、チョコレートやアイシングをかける。", time: null },
+  ],
+
+  "panettone": [
+    { label: "下準備", desc: () => "ドライフルーツはラム酒に一晩漬け込む。バターは室温に戻す。パネトーネ専用型（または深めのマフィン型）を用意する。", time: "一晩漬け込み" },
+    { label: "生地を作る", desc: () => "強力粉・砂糖・塩・イーストを混ぜ、卵・牛乳・バターを加えてなめらかになるまでよくこねる。リッチな生地なのでしっかりこねること。", time: "約20分" },
+    { label: "一次発酵", desc: (r) => `ラップをかけて${r.fermentConfig?.first?.temp || 28}℃でゆっくり発酵させる。2倍程度に膨らめばOK。`, time: (r) => `${r.fermentConfig?.first?.temp || 28}℃・${r.fermentConfig?.first?.time || 90}分` },
+    { label: "具材を混ぜる", desc: () => "漬け込んだドライフルーツをよく水気を切って生地に折り込む。オレンジピール・レモンピールも加える。", time: null },
+    { label: "型に入れる・二次発酵", desc: (r) => `型に入れて${r.fermentConfig?.second?.temp || 35}℃で発酵させる。型の8分目まで膨らめばOK。`, time: (r) => `${r.fermentConfig?.second?.temp || 35}℃・${r.fermentConfig?.second?.time || 60}分` },
+    { label: "焼成", desc: (r) => `表面に十字の切り込みを入れ、バターを少量置く。${r.bakingConfig?.temp || 170}℃に予熱したオーブンで${r.bakingConfig?.time || 40}分焼く。竹串を刺して何もつかなければOK。`, time: (r) => `${r.bakingConfig?.temp || 170}℃・${r.bakingConfig?.time || 40}分` },
+    { label: "逆さ吊り冷却（重要）", desc: () => "焼き上がったらすぐに型ごと逆さにして吊るして冷ます。これにより生地が自重で潰れず、ふんわりした食感が保たれる。竹串を横に刺して逆さに吊るすと良い。", time: "完全に冷めるまで（約2時間）" },
+  ],
+
+  "pizza": [
+    { label: "生地を作る", desc: () => "ボウルに強力粉・塩・イーストを入れ混ぜる。水とオリーブオイルを加えてひとまとめにし、なめらかになるまでこねる。", time: "約8分" },
+    { label: "一次発酵", desc: (r) => `ラップをかけて${r.fermentConfig?.first?.temp || 28}℃で発酵させる。2倍程度に膨らめばOK。冷蔵庫で一晩発酵させると風味が増す。`, time: (r) => `${r.fermentConfig?.first?.temp || 28}℃・${r.fermentConfig?.first?.time || 30}分` },
+    { label: "分割・ベンチタイム", desc: () => "2〜3等分にして丸め、濡れ布巾をかけて15分休ませる。生地がリラックスして伸ばしやすくなる。", time: "15分" },
+    { label: "成形", desc: () => "打ち粉をした台の上で手またはめん棒で薄く丸く伸ばす（直径25〜30cm・厚さ3mm程度）。クッキングシートを敷いた天板にのせる。", time: null },
+    { label: "トッピング", desc: () => "トマトソースを薄く塗り、お好みの具材をのせ、チーズを散らす。生地の端（耳）はトッピングしない。", time: null },
+    { label: "焼成", desc: (r) => `${r.bakingConfig?.temp || 250}℃（最高温度）に予熱したオーブンで${r.bakingConfig?.time || 10}分焼く。チーズがとろけて端がこんがりすればOK。`, time: (r) => `${r.bakingConfig?.temp || 250}℃・${r.bakingConfig?.time || 10}分` },
+    { label: "仕上げ", desc: () => "お好みでバジルをのせて完成。熱いうちに食べるのが一番おいしい。", time: null },
+  ],
+
+  "cinnamon_roll": [
+    { label: "生地を作る", desc: () => "ボウルに強力粉・砂糖・塩・イーストを入れ混ぜる。牛乳・卵・バターを加えてなめらかになるまでこねる。", time: "約12分" },
+    { label: "一次発酵", desc: (r) => `ラップをかけて${r.fermentConfig?.first?.temp || 28}℃で発酵させる。2倍程度に膨らめばOK。`, time: (r) => `${r.fermentConfig?.first?.temp || 28}℃・${r.fermentConfig?.first?.time || 60}分` },
+    { label: "フィリングを作る", desc: () => "室温のバター・砂糖・シナモンパウダーをよく混ぜ合わせてフィリングを作る。", time: null },
+    { label: "成形", desc: () => "生地を25×35cmの長方形に伸ばす。フィリングを端1cmを残して均一に塗る。手前からきつく巻いてロール状にする。", time: null },
+    { label: "カット・二次発酵", desc: (r) => `3cm幅にカットして型や天板に並べる。${r.fermentConfig?.second?.temp || 35}℃で発酵させる。ひとまわり大きくなればOK。`, time: (r) => `${r.fermentConfig?.second?.temp || 35}℃・${r.fermentConfig?.second?.time || 30}分` },
+    { label: "焼成", desc: (r) => `${r.bakingConfig?.temp || 180}℃に予熱したオーブンで${r.bakingConfig?.time || 18}分焼く。表面がきつね色になればOK。`, time: (r) => `${r.bakingConfig?.temp || 180}℃・${r.bakingConfig?.time || 18}分` },
+    { label: "アイシング", desc: () => "粉砂糖に牛乳を少量加えてとろりとしたアイシングを作る。焼き上がった熱いうちにかける。", time: null },
+  ],
+
+  "grissini": [
+    { label: "生地を作る", desc: () => "ボウルに強力粉・塩・イーストを入れ混ぜる。水とオリーブオイルを加えてひとまとめにし、なめらかになるまでこねる。", time: "約8分" },
+    { label: "一次発酵", desc: (r) => `ラップをかけて${r.fermentConfig?.first?.temp || 28}℃で発酵させる。1.5倍程度に膨らめばOK。`, time: (r) => `${r.fermentConfig?.first?.temp || 28}℃・${r.fermentConfig?.first?.time || 30}分` },
+    { label: "成形", desc: () => "生地を薄く伸ばし、1cm幅に切る。両手で転がしながら30〜40cmの細長い棒状に成形する。天板に並べる。", time: null },
+    { label: "仕上げ・焼成", desc: (r) => `表面にオリーブオイルを薄く塗り、岩塩やゴマ・ハーブをお好みでふる。${r.bakingConfig?.temp || 200}℃に予熱したオーブンで${r.bakingConfig?.time || 15}分焼く。全体がカリッと乾いた感じになればOK。`, time: (r) => `${r.bakingConfig?.temp || 200}℃・${r.bakingConfig?.time || 15}分` },
+    { label: "冷ます", desc: () => "網の上で完全に冷ます。冷めるとさらにカリカリになる。密閉容器で2〜3日保存可能。", time: null },
+  ],
+
+  "ciabatta": [
+    { label: "生地を作る（パンチのみ）", desc: () => "ボウルに強力粉・塩・イーストを入れ混ぜる。水を一度に加えてひとまとめにする。こねない。超高加水なので非常にべたつくが正常。", time: null },
+    { label: "フォールド（折りたたみ）①", desc: () => "30分後、濡れた手で生地の端を引っ張って中央に折り込む（4方向から）。これを「コイルフォールド」と呼ぶ。こねる代わりにこの作業でグルテンを作る。", time: "30分後" },
+    { label: "フォールド②③④", desc: () => "さらに30分ごとに同じ折りたたみを3回繰り返す。回を重ねるごとに生地に弾力が出てくる。", time: "30分×3回" },
+    { label: "一次発酵", desc: (r) => `最後のフォールドから${r.fermentConfig?.first?.temp || 28}℃でさらに発酵させる。生地が2倍になりプツプツと気泡が見えればOK。`, time: (r) => `${r.fermentConfig?.first?.temp || 28}℃・${r.fermentConfig?.first?.time || 60}分` },
+    { label: "成形（最小限に）", desc: () => "打ち粉をたっぷりした台に生地をそっと出す。生地を傷めないよう最小限の動作で長方形に整える。カードで2〜3分割する。", time: null },
+    { label: "二次発酵", desc: (r) => `打ち粉をした布の上に置いて${r.fermentConfig?.second?.temp || 28}℃で発酵させる。ふっくら膨らめばOK。`, time: (r) => `${r.fermentConfig?.second?.temp || 28}℃・${r.fermentConfig?.second?.time || 30}分` },
+    { label: "焼成", desc: (r) => `${r.bakingConfig?.temp || 230}℃に予熱したオーブンと天板を準備。生地をそっと熱した天板に移す。蒸気を出して${r.bakingConfig?.time || 25}分焼く。表面がパリッとして中に大きな気泡ができればOK。`, time: (r) => `${r.bakingConfig?.temp || 230}℃・${r.bakingConfig?.time || 25}分` },
+    { label: "仕上げ", desc: () => "網の上で冷ます。切ると大きな不規則な気泡（チャバタの特徴）が見える。完全に冷めてからカットすると断面がきれい。", time: null },
+  ],
 };
 
 // ─────────────────────────────────────
