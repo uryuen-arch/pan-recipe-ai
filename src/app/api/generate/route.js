@@ -28,12 +28,22 @@ export async function POST(request) {
 
     const userIngredients = ingredients.split(/[,、]/).map(s => s.trim()).filter(Boolean);
 
-    // DBから全プロファイルを取得
-    const { data: profiles, error } = await supabase
+    // 条件を解析
+    const textureConditions = conditions.filter(c => ["ふんわり", "しっとり", "ハード系"].includes(c));
+    const texture = textureConditions[0] || null; // 選択された食感
+
+    // DBから全プロファイルを取得（texture指定があれば絞り込む）
+    let query = supabase
       .from("bread_profiles")
       .select("*")
       .eq("is_active", true)
       .eq("difficulty", difficulty);
+
+    if (texture) {
+      query = query.eq("texture", texture);
+    }
+
+    const { data: profiles, error } = await query;
 
     if (error) throw error;
 
