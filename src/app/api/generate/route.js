@@ -70,11 +70,19 @@ export async function POST(request) {
     ).join("\n");
 
     const fillingsText = fillings.length > 0
-      ? `\n【具材の分量指示】（必須）\n以下の具材は必ずfillingsに追加してください：${fillings.join("・")}\n粉量300gに対するベーカーズ%と分量(g)、下処理メモを記載してください。\n例：{"name":"ベーコン","grams":60,"ratio":20,"note":"1cm幅に切る"}\n絶対に空配列[]にしないでください。`
+      ? `\n【具材の分量・使い方指示】（必須）
+以下の具材は必ずfillingsに追加してください：${fillings.join("・")}
+各具材について以下を記載してください：
+- grams：粉量300g基準の分量(g)
+- ratio：ベーカーズ%
+- note：下処理メモ（例：1cm幅に切る）
+- timing：使うタイミング（「粉類と混ぜる」「捏ね後に折り込む」「成形時に巻き込む」「成形時に包む」「成形時にのせる」「焼成前にかける」のいずれか）
+- step_instruction：工程への具体的な指示（例：「強力粉と一緒にボウルに入れてよく混ぜる」）
+絶対に空配列[]にしないでください。`
       : "";
 
     const exampleFilling = fillings.length > 0
-      ? `[{"name":"${fillings[0]}","grams":60,"ratio":20,"note":"下処理メモ"}]`
+      ? `[{"name":"${fillings[0]}","grams":60,"ratio":20,"note":"下処理メモ","timing":"成形時に巻き込む","step_instruction":"生地を伸ばした後、${fillings[0]}を均等に散らして巻き込む"}]`
       : "[]";
 
     const prompt = `あなたはパン作りの専門家です。
@@ -102,7 +110,7 @@ ${fillingsText}
 - feature：特徴3つカンマ区切り
 - recommend：他との比較で際立つ一言
 - point：失敗しないコツ1〜2文
-- fillings：具材リスト
+- fillings：具材リスト（timingとstep_instructionを必ず含める）
 
 JSON形式のみ。バッククォートや説明文は不要です。
 [
@@ -130,11 +138,13 @@ JSON形式のみ。バッククォートや説明文は不要です。
 
       // 具材をflouGramsにスケール
       const fillingsData = (ai.fillings || []).map(f => ({
-        name:      f.name,
-        grams:     Math.round((f.grams || 0) * flourGrams / 300),
-        ratio:     Math.round((f.ratio || 0) * flourGrams / 300 * 10) / 10,
-        note:      f.note || null,
-        isFilling: true,
+        name:             f.name,
+        grams:            Math.round((f.grams || 0) * flourGrams / 300),
+        ratio:            Math.round((f.ratio || 0) * flourGrams / 300 * 10) / 10,
+        note:             f.note || null,
+        timing:           f.timing || null,
+        step_instruction: f.step_instruction || null,
+        isFilling:        true,
       }));
 
       const allIngredientsData = [...calc.ingredients, ...fillingsData];

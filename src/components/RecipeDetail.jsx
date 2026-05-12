@@ -9,10 +9,7 @@ export default function RecipeDetail({ recipe, onBack }) {
   const [recipeDbId, setRecipeDbId] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-  window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-  initRecipe();
-}, []);
+  useEffect(() => { initRecipe(); }, []);
 
   const initRecipe = async () => {
     try {
@@ -249,33 +246,78 @@ export default function RecipeDetail({ recipe, onBack }) {
           {/* 作り方 */}
           <Section title="作り方" emoji="👨‍🍳">
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {stepsData.map((step, i) => (
-                <div key={i} style={{
-                  display: "flex", gap: 12,
-                  background: "var(--white)", borderRadius: 10,
-                  padding: "12px 14px", border: "0.5px solid var(--gray-border)",
-                }}>
-                  <div style={{
-                    width: 24, height: 24, borderRadius: "50%",
-                    background: "var(--green-main)", color: "var(--white)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 11, fontWeight: 600, flexShrink: 0, marginTop: 1,
-                  }}>{step.index || i + 1}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--green-deep)", marginBottom: 4 }}>
-                      {step.label}
-                    </div>
-                    <div style={{ fontSize: 13, color: "var(--gray-ink)", lineHeight: 1.7 }}>
-                      {step.desc}
-                    </div>
-                    {step.time && (
-                      <div style={{ fontSize: 11, color: "var(--green-mid)", marginTop: 4, display: "flex", alignItems: "center", gap: 3 }}>
-                        ⏱ {step.time}
+              {stepsData.map((step, i) => {
+                // このステップに関連する具材を探す
+                const relatedFillings = (recipe.fillings || []).filter(f => {
+                  if (!f.timing || !f.step_instruction) return false;
+                  const label = step.label || "";
+                  const timing = f.timing;
+                  if (timing === "粉類と混ぜる" && (label.includes("混ぜ") || label.includes("下準備") || label.includes("生地"))) return true;
+                  if (timing === "捏ね後に折り込む" && (label.includes("捏ね") || label.includes("こね"))) return true;
+                  if (timing === "成形時に巻き込む" && label.includes("成形")) return true;
+                  if (timing === "成形時に包む" && label.includes("成形")) return true;
+                  if (timing === "成形時にのせる" && label.includes("成形")) return true;
+                  if (timing === "焼成前にかける" && label.includes("焼成")) return true;
+                  return false;
+                });
+
+                return (
+                  <div key={i} style={{
+                    background: "var(--white)", borderRadius: 10,
+                    border: relatedFillings.length > 0
+                      ? `1px solid var(--amber-dark)`
+                      : "0.5px solid var(--gray-border)",
+                    overflow: "hidden",
+                  }}>
+                    <div style={{ display: "flex", gap: 12, padding: "12px 14px" }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: "50%",
+                        background: "var(--green-main)", color: "var(--white)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 11, fontWeight: 600, flexShrink: 0, marginTop: 1,
+                      }}>{step.index || i + 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--green-deep)", marginBottom: 4 }}>
+                          {step.label}
+                        </div>
+                        <div style={{ fontSize: 13, color: "var(--gray-ink)", lineHeight: 1.7 }}>
+                          {step.desc}
+                        </div>
+                        {step.time && (
+                          <div style={{ fontSize: 11, color: "var(--green-mid)", marginTop: 4, display: "flex", alignItems: "center", gap: 3 }}>
+                            ⏱ {step.time}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
+
+                    {/* 具材の使い方（オレンジ帯） */}
+                    {relatedFillings.map((f, j) => (
+                      <div key={j} style={{
+                        background: "var(--amber-pale)",
+                        borderTop: "0.5px solid var(--amber-dark)",
+                        padding: "8px 14px",
+                        display: "flex", gap: 8, alignItems: "flex-start",
+                      }}>
+                        <span style={{ fontSize: 14, flexShrink: 0 }}>🥄</span>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--amber-dark)", marginBottom: 2 }}>
+                            {f.name}（{f.grams}g）を追加
+                          </div>
+                          <div style={{ fontSize: 12, color: "var(--amber-dark)", lineHeight: 1.6 }}>
+                            {f.step_instruction}
+                          </div>
+                          {f.note && (
+                            <div style={{ fontSize: 10, color: "var(--amber-dark)", marginTop: 2, opacity: 0.8 }}>
+                              ※ {f.note}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Section>
 
