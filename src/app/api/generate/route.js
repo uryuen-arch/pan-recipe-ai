@@ -122,7 +122,7 @@ JSON形式のみ。バッククォートや説明文は不要です。
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 1200,
+      max_tokens: 400,
       temperature: 0.8,
     });
 
