@@ -156,3 +156,71 @@ export function getSubstituteNote(substituted) {
   if (substituted.length === 0) return null;
   return substituted.map(s => `${s.original}の代わりに${s.substitute}を使用`).join("・");
 }
+
+// ─────────────────────────────────────
+// 派生レシピのマッチング
+// ─────────────────────────────────────
+export function matchVariations(userIngredients, variations, matchedProfiles) {
+  const normalized = normalizeUserIngredients([
+    ...userIngredients,
+    ...BASE_ALWAYS_HAVE,
+  ]);
+
+  // マッチした生地タイプを取得
+  const availableDoughTypes = new Set(
+    matchedProfiles
+      .filter(m => m.category === "perfect" || m.category === "almost")
+      .map(m => m.profile.dough_type)
+      .filter(Boolean)
+  );
+
+  const results = [];
+
+  for (const variation of variations) {
+    // この生地タイプが作れるか確認
+    if (!availableDoughTypes.has(variation.base_dough_type)) continue;
+
+    // 必須具材が揃っているか確認
+    const missingRequired = (variation.requires || []).filter(
+      req => !hasIngredient(normalized, req)
+    );
+
+    // 任意具材のマッチ数
+    const matchedOptional = (variation.optional || []).filter(
+      opt => hasIngredient(normalized, opt)
+    );
+
+    let category;
+    if (missingRequired.length === 0) {
+      category = "perfect";
+    } else if (missingRequired.length <= 1) {
+      category = "almost";
+    } else {
+      continue; // 2つ以上足りない場合はスキップ
+    }
+
+    // ベースとなるプロファイルを取得
+    const baseProfile = matchedProfiles.find(
+      m => m.profile.dough_type === variation.base_dough_type
+        && (m.category === "perfect" || m.category === "almost")
+    );
+
+    results.push({
+      variation,
+      baseProfile: baseProfile?.profile,
+      category,
+      missing: missingRequired,
+      matchedOptional,
+      isVariation: true,
+    });
+  }
+
+  // perfectを優先してスコア順にソート
+  return results.sort((a, b) => {
+    const catOrder = { perfect: 0, almost: 1 };
+    if (catOrder[a.category] !== catOrder[b.category]) {
+      return catOrder[a.category] - catOrder[b.category];
+    }
+    return b.matchedOptional.length - a.matchedOptional.length;
+  });
+}

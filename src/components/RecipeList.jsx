@@ -77,7 +77,25 @@ export default function RecipeList({ recipes, onSelect, onRegenerate, loading })
                         <span style={{ fontSize: 14, fontWeight: 600, color: "var(--gray-ink)" }}>
                           {recipe.name}
                         </span>
+                        {recipe.isVariation && (
+                          <span style={{
+                            fontSize: 9, padding: "2px 6px", borderRadius: 4,
+                            background: "var(--amber-pale)", color: "var(--amber-dark)",
+                            fontWeight: 600, flexShrink: 0,
+                          }}>派生</span>
+                        )}
                       </div>
+
+                      {/* 派生レシピの説明 */}
+                      {recipe.isVariation && recipe.variationDesc && (
+                        <div style={{
+                          fontSize: 11, color: "var(--amber-dark)",
+                          paddingLeft: 22, marginBottom: 5,
+                          fontStyle: "italic",
+                        }}>
+                          🎯 {recipe.variationDesc}
+                        </div>
+                      )}
 
                       {/* キャッチコピー */}
                       {recipe.catchcopy && (

@@ -1,7 +1,7 @@
 import Groq from "groq-sdk";
 import { calcRecipe, formatIngredients } from "../../../lib/baker";
 import { getStepsTemplate } from "../../../lib/steps";
-import { matchRecipes, extractFillings, getSubstituteNote } from "../../../lib/matcher";
+import { matchRecipes, matchVariations, extractFillings, getSubstituteNote } from "../../../lib/matcher";
 import { createClient } from "@supabase/supabase-js";
 
 const client = new Groq();
@@ -13,6 +13,33 @@ const supabase = createClient(
 const TIME_MAP       = { "30分以内": "30分以内", "1時間": "1時間", "一晩": "一晩" };
 const METHOD_MAP     = { "オーブン": "オーブン", "フライパン": "フライパン", "ホームベーカリー": "ホームベーカリー", "トースター": "トースター" };
 const DIFFICULTY_MAP = { "超簡単": "超簡単", "簡単": "簡単", "本格": "本格" };
+
+// 派生レシピとベースレシピを組み合わせてtop3を選択
+function selectTop3(matchedVariations, matchedProfiles) {
+  const result = [];
+  const usedDoughTypes = new Set();
+
+  // 派生レシピを優先（perfectのみ）
+  for (const v of matchedVariations.filter(v => v.category === "perfect")) {
+    if (result.length >= 3) break;
+    result.push({ ...v, type: "variation" });
+    usedDoughTypes.add(v.variation.base_dough_type);
+  }
+
+  // 残りをベースレシピで埋める
+  for (const m of matchedProfiles) {
+    if (result.length >= 3) break;
+    result.push({ ...m, type: "base" });
+  }
+
+  // almostの派生レシピも追加（枠が余っていれば）
+  for (const v of matchedVariations.filter(v => v.category === "almost")) {
+    if (result.length >= 3) break;
+    result.push({ ...v, type: "variation" });
+  }
+
+  return result.slice(0, 3);
+}
 
 export async function POST(request) {
   try {
@@ -49,25 +76,59 @@ export async function POST(request) {
 
     // マッチング実行
     const matched = matchRecipes(userIngredients, profiles);
-    const top3 = matched.slice(0, 3);
+    
+    // variationsテーブルから派生レシピを取得
+    const { data: variations } = await supabase
+      .from("variations")
+      .select("*");
+
+    // 派生レシピのマッチング
+    const matchedVariations = matchVariations(userIngredients, variations || [], matched);
+
+    // 派生レシピを優先して上位3件を選択
+    const top3 = selectTop3(matchedVariations, matched);
 
     // 具材を抽出
     const fillings = extractFillings(userIngredients);
 
     // 各プロファイルで配合と工程を計算
     const FLOUR_AMOUNTS = [250, 300, 350];
-    const recipeConfigs = top3.map((match, i) => {
+    const recipeConfigs = top3.map((item, i) => {
       const flourGrams = FLOUR_AMOUNTS[i] || 300;
-      const texture    = match.profile.texture;
-      const calc  = calcRecipe({ flourGrams, profile: match.profile, timeCondition, method, userIngredients });
-      const steps = getStepsTemplate(texture, method, timeCondition, { ...calc, profile: match.profile });
-      return { match, calc, steps, flourGrams, texture };
+      const isVariation = item.type === "variation";
+      const profile = isVariation ? item.baseProfile : item.profile;
+      const texture = profile?.texture || "ふんわり";
+      const stepsType = isVariation
+        ? (item.variation.steps_type || profile?.steps_type || "standard")
+        : profile?.steps_type || "standard";
+
+      const profileWithStepsType = { ...profile, steps_type: stepsType };
+      const calc  = calcRecipe({ flourGrams, profile: profileWithStepsType, timeCondition, method, userIngredients });
+      const steps = getStepsTemplate(texture, method, timeCondition, { ...calc, profile: profileWithStepsType });
+
+      return {
+        item,
+        isVariation,
+        profile: profileWithStepsType,
+        calc,
+        steps,
+        flourGrams,
+        texture,
+        category:  item.category,
+        missing:   item.missing || [],
+        substituted: item.substituted || [],
+        variationName: isVariation ? item.variation.variation_name : null,
+        variationDesc: isVariation ? item.variation.description : null,
+        stepsNote:     isVariation ? item.variation.steps_note : null,
+      };
     });
 
     // AIには名前・コピー・ポイント・具材分量だけ生成
-    const profileSummary = top3.map((m, i) =>
-      `${i + 1}. ${m.profile.type}（${m.profile.texture}・${m.category === "perfect" ? "今すぐ作れる" : m.missing.join("・") + "が必要"}）`
-    ).join("\n");
+    const profileSummary = recipeConfigs.map((config, i) => {
+      const name = config.isVariation ? config.variationName : config.profile?.type;
+      const status = config.category === "perfect" ? "今すぐ作れる" : `${config.missing.join("・")}が必要`;
+      return `${i + 1}. ${name}（${config.texture}・${status}${config.isVariation ? "・派生レシピ" : ""}）`;
+    }).join("\n");
 
     const fillingsText = fillings.length > 0
       ? `\n【具材の分量・使い方指示】（必須）
@@ -134,9 +195,8 @@ JSON形式のみ。バッククォートや説明文は不要です。
 
     const recipes = recipeConfigs.map((config, i) => {
       const ai = aiData[i] || aiData[0];
-      const { match, calc, steps, flourGrams, texture } = config;
+      const { calc, steps, flourGrams, texture, isVariation } = config;
 
-      // 具材をflouGramsにスケール
       const fillingsData = (ai.fillings || []).map(f => ({
         name:             f.name,
         grams:            Math.round((f.grams || 0) * flourGrams / 300),
@@ -160,10 +220,14 @@ JSON形式のみ。バッククォートや説明文は不要です。
         recommend:       ai.recommend,
         point:           ai.point,
         fillings:        fillingsData,
-        category:        match.category,
-        missing:         match.missing,
-        substituted:     match.substituted,
-        substituteNote:  getSubstituteNote(match.substituted),
+        isVariation,
+        variationName:   config.variationName,
+        variationDesc:   config.variationDesc,
+        stepsNote:       config.stepsNote,
+        category:        config.category,
+        missing:         config.missing,
+        substituted:     config.substituted || [],
+        substituteNote:  getSubstituteNote(config.substituted || []),
         texture,
         time:            timeCondition === "一晩"     ? "翌日完成（仕込み15分）" :
                          timeCondition === "30分以内" ? "約30分" : "約1時間",
@@ -180,7 +244,7 @@ JSON形式のみ。バッククォートや説明文は不要です。
         fermentConfig:   calc.fermentConfig,
         bakingConfig:    calc.bakingConfig,
         yeastRatio:      calc.yeastRatio,
-        profileType:     match.profile.type,
+        profileType:     config.profile?.type,
       };
     });
 

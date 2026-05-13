@@ -140,6 +140,22 @@ export default function RecipeDetail({ recipe, onBack }) {
             </div>
           )}
 
+          {/* 派生レシピ情報 */}
+          {recipe.isVariation && recipe.stepsNote && (
+            <div style={{
+              background: "var(--amber-pale)", borderRadius: 10,
+              padding: "12px 14px", marginBottom: 14,
+              border: "0.5px solid var(--amber-dark)",
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--amber-dark)", marginBottom: 4 }}>
+                🎯 派生レシピの追加工程
+              </div>
+              <div style={{ fontSize: 12, color: "var(--amber-dark)", lineHeight: 1.7 }}>
+                {recipe.stepsNote}
+              </div>
+            </div>
+          )}
+
           {/* 発酵バナー */}
           {recipe.fermentation && (
             <div style={{
