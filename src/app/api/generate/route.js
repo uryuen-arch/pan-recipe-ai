@@ -134,70 +134,45 @@ export async function POST(request) {
       return `${i + 1}. ${name}（${config.texture}・${status}${config.isVariation ? "・派生レシピ" : ""}）`;
     }).join("\n");
 
-    const fillingsText = `\n【具材・副資材の選別と指示】（最重要）
-1. 「入力材料」の中から、パンを特徴づける具材や副資材を5〜8個選別し、fillingsリストに追加してください。
-2. 「家にある材料（入力材料）」にないものは、ベースの4項目（強力粉・塩・水・ドライイースト）以外は絶対に使用しないでください。
-3. ベースの4項目を「パン生地以外（トッピング、クッキー生地、折り込み用等）」に使う場合は、用途を明記して含めてください（例：「仕上げ用強力粉」）。
-4. パン生地そのもののための「強力粉、塩、水、ドライイースト」は、絶対にfillingsリストに含めないでください。
-各具材について簡潔に以下を記載してください：
-- grams：粉量300g基準の分量(g)
+    const fillingsText = `\n【具材指示】（最重要）
+入力材料から重要な具材を5〜8個選別し、以下のみ出力：
 - ratio：ベーカーズ%
-- note：下処理（10文字以内）
-- timing：使うタイミング
-- step_instruction：工程指示（30文字以内）`;
+- timing：タイミング（捏ね/成形/焼成前/仕上げ）
+- inst：動作（15文字以内：例「生地に包む」）`;
 
-    const exampleFilling = `[{"name":"具材名","grams":60,"ratio":20,"note":"下処理","timing":"タイミング","step_instruction":"指示"}]`;
+    const exampleFilling = `[{"name":"具材","ratio":20,"timing":"成形","inst":"生地に包む"}]`;
 
-    const prompt = `あなたはパン作りの専門家です。
-以下の3種類のパンに対して、それぞれ名前とコピーを考えてください。
+    const prompt = `あなたはパン専門家です。3つのパンを提案してください。
+入力材料：${ingredients}
+条件：${timeCondition}, ${method}, ${difficulty}
+対象プロファイル：\n${profileSummary}\n${fillingsText}
 
-マッチしたパン：
-${profileSummary}
+【ルール】
+- レシピ名：日本語のみ
+- キャッチコピー：15文字以内
+- 具材(fillings)：入力材料にあるものと、ベース4項目以外の必須材料のみ。
+- 材料選別：材料が多い場合は重要なものに絞る。
 
-【表示・使用ロジック（厳守）】
-1. パン生地（マスト材料）の非表示:
-   - パンのベース生地として使用する「強力粉、塩、水、ドライイースト」は、絶対にレシピの材料リストには表示しません（fillingsにも含めない）。
-2. 例外的な表示条件:
-   - ただし、これら4項目をパン生地以外（例：折り込みシート、クッキー生地、トッピング）を作るために使用する場合は、用途を明記してfillingsに記載してください（例：「折り込み用強力粉」）。
-3. 「家にある材料」の厳守:
-   - 以下の「入力材料」にないものは、ベースの4項目（強力粉・塩・水・ドライイースト）以外は一切使用しないでください。
-4. 出力フォーマットの固定:
-   - 材料リスト（fillings）は必ず「ベース生地以外に必要なもの（具材、トッピング、副資材）」だけが並ぶようにしてください。
-
-条件：
-- 時間：${timeCondition}
-- 調理方法：${method}
-- 難易度：${difficulty}
-- 入力材料：${ingredients}
-${fillingsText}
-
-【出力ルール】
-- レシピ名：日本語のみ、造語禁止
-- キャッチコピー：20文字以内
-- 特徴：3つカンマ区切り
-- ポイント：30文字以内の簡潔なコツを1つ
-- 手順指示（fillings内）：各30文字以内
-
-JSON形式で出力してください。
+JSONのみ出力：
 {
   "recipes": [
-    {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}},
-    {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}},
-    {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}}
+    {"name":"","catchcopy":"","fillings":${exampleFilling}},
+    {"name":"","catchcopy":"","fillings":${exampleFilling}},
+    {"name":"","catchcopy":"","fillings":${exampleFilling}}
   ]
 }`;
 
     const completion = await client.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 3000,
+      max_tokens: 1500,
       temperature: 0.3,
       response_format: { type: "json_object" },
     });
 
     if (completion.choices[0].finish_reason === "length") {
       return Response.json(
-        { error: "AIの回答が長すぎて途切れてしまいました。材料を減らすか、もう一度お試しください。" },
+        { error: "AIの回答が途切れました。材料を減らしてお試しください。" },
         { status: 500 }
       );
     }
@@ -208,7 +183,7 @@ JSON形式で出力してください。
       aiData = JSON.parse(text);
     } catch (e) {
       console.error("AI JSON Parse Error. Raw text:", text);
-      throw new Error("AIの回答を解析できませんでした。もう一度お試しください。");
+      throw new Error("AIの回答を解析できませんでした。");
     }
 
     const servingsMap = { 250: "6個分", 300: "8個分", 350: "10個分" };
@@ -219,13 +194,34 @@ JSON形式で出力してください。
 
       const fillingsData = (ai.fillings || []).map(f => ({
         name:             f.name,
-        grams:            Math.round((f.grams || 0) * flourGrams / 300),
-        ratio:            Math.round((f.ratio || 0) * flourGrams / 300 * 10) / 10,
-        note:             f.note || null,
+        grams:            Math.round(flourGrams * (f.ratio || 0) / 100),
+        ratio:            f.ratio || 0,
+        note:             null,
         timing:           f.timing || null,
-        step_instruction: f.step_instruction || null,
+        step_instruction: f.inst || null,
         isFilling:        true,
       }));
+
+      // 工程に具材の使い方指示を統合
+      const updatedSteps = steps.map(step => {
+        const matchingFillings = fillingsData.filter(f => {
+          if (!f.timing || !f.step_instruction) return false;
+          const t = f.timing;
+          const l = step.label;
+          if (l === "混ぜる" && t.includes("混ぜ")) return true;
+          if (l === "捏ね" && (t.includes("捏ね") || t.includes("合わせ"))) return true;
+          if (l === "成形" && (t.includes("成形") || t.includes("巻き") || t.includes("包む") || t.includes("のせ"))) return true;
+          if (l === "焼成" && t.includes("焼成")) return true;
+          if (l === "仕上げ" && (t.includes("仕上げ") || t.includes("かけ"))) return true;
+          return false;
+        });
+
+        if (matchingFillings.length > 0) {
+          const instructions = matchingFillings.map(f => `【${f.name}】${f.step_instruction}`).join(" ");
+          return { ...step, desc: `${step.desc} ${instructions}` };
+        }
+        return step;
+      });
 
       const MUST_MATERIALS = ["強力粉", "塩", "水", "ドライイースト"];
       const displayBaseIngredients = calc.ingredients.filter(ing => !MUST_MATERIALS.includes(ing.name));
@@ -233,15 +229,15 @@ JSON形式で出力してください。
       const allIngredientsData = [...calc.ingredients, ...fillingsData];
       const allIngredients = [
         ...formatIngredients(displayBaseIngredients),
-        ...fillingsData.map(f => `${f.name} ${f.grams}g${f.note ? `（${f.note}）` : ""}`),
+        ...fillingsData.map(f => `${f.name} ${f.grams}g`),
       ];
 
       return {
         name:            ai.name || "名称未設定のパン",
         catchcopy:       ai.catchcopy || "",
-        feature:         ai.feature || "",
-        recommend:       ai.recommend || "",
-        point:           ai.point || "",
+        feature:         config.profile?.description || "", // プロファイルから引用して節約
+        recommend:       "", 
+        point:           config.variationDesc || "丁寧に作業しましょう。", // 既存データから引用
         fillings:        fillingsData,
         isVariation,
         variationName:   config.variationName,
@@ -261,8 +257,8 @@ JSON形式で出力してください。
         sweetness:       texture === "ふんわり" ? "甘め" : texture === "ハード系" ? "控えめ" : "中程度",
         ingredientsData: allIngredientsData,
         ingredients:     allIngredients,
-        stepsData:       steps,
-        steps:           steps.map(s => `【${s.label}】${s.desc}${s.time ? `（目安：${s.time}）` : ""}`),
+        stepsData:       updatedSteps,
+        steps:           updatedSteps.map(s => `【${s.label}】${s.desc}${s.time ? `（目安：${s.time}）` : ""}`),
         fermentation:    calc.fermentation,
         fermentConfig:   calc.fermentConfig,
         bakingConfig:    calc.bakingConfig,
