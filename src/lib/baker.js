@@ -79,74 +79,74 @@ export function calcRecipe({
 }) {
   const yeastMult   = YEAST_MULTIPLIER[timeCondition] || 1.0;
   const ferment     = FERMENTATION_CONFIG[timeCondition] || FERMENTATION_CONFIG["default"];
-
-  // 焼成条件をDBから取得
   const baking = getBakingConfig(profile, method);
 
-  // ユーザー食材に卵があれば追加
+  // ユーザーの所持材料を確認
+  const hasMilk = userIngredients.some(i => i.includes("牛乳") || i.includes("ミルク"));
   const hasEgg = userIngredients.some(i => i.includes("卵") || i.includes("egg"));
-  const eggRatio = hasEgg ? (profile.egg || 0) : 0;
+  const hasMargarine = userIngredients.some(i => i.includes("マーガリン"));
+  const hasSaltedButter = userIngredients.some(i => i.includes("有塩バター"));
 
-  // イースト補正
-  const yeastRatio = Math.round(profile.yeast * yeastMult * 10) / 10;
+  // 水分量の計算（基本の水 + 牛乳 + 卵の合計水分量を調整）
+  let targetWaterRatio = (profile.water || 0) + (profile.milk || 0);
+  let finalIngredients = [];
 
-  // 材料リストを構築
-  const ingredients = [];
-
-  // 全粒粉混合
+  // 1. 強力粉 / 全粒粉
   if (profile.whole_wheat > 0) {
     const wwGrams = Math.round(flourGrams * profile.whole_wheat / 100);
-    const bfGrams = flourGrams - wwGrams;
-    ingredients.push({ name: "強力粉",  grams: bfGrams, ratio: 100 - profile.whole_wheat });
-    ingredients.push({ name: "全粒粉",  grams: wwGrams, ratio: profile.whole_wheat, note: `強力粉の${profile.whole_wheat}%` });
+    finalIngredients.push({ name: "強力粉", grams: flourGrams - wwGrams, ratio: 100 - profile.whole_wheat });
+    finalIngredients.push({ name: "全粒粉", grams: wwGrams, ratio: profile.whole_wheat });
   } else {
-    ingredients.push({ name: "強力粉", grams: flourGrams, ratio: 100 });
+    finalIngredients.push({ name: "強力粉", grams: flourGrams, ratio: 100 });
   }
 
-  if ((profile.milk || 0) > 0) {
-    const g = Math.round(flourGrams * profile.milk / 100);
-    ingredients.push({ name: "牛乳", grams: g, unit: "ml", ratio: profile.milk, note: "人肌程度に温める" });
+  // 2. 水分（牛乳優先置換）
+  if (hasMilk && targetWaterRatio > 0) {
+    // 水を牛乳に置き換える (水×1.1)
+    const milkGrams = Math.round(flourGrams * (targetWaterRatio * 1.1) / 100);
+    finalIngredients.push({ name: "牛乳", grams: milkGrams, unit: "ml", ratio: targetWaterRatio * 1.1, note: "人肌に温める" });
+  } else if (targetWaterRatio > 0) {
+    const waterGrams = Math.round(flourGrams * targetWaterRatio / 100);
+    finalIngredients.push({ name: "水", grams: waterGrams, unit: "ml", ratio: targetWaterRatio, note: "人肌に温める" });
   }
-  if ((profile.water || 0) > 0) {
-    const g = Math.round(flourGrams * profile.water / 100);
-    ingredients.push({ name: "水", grams: g, unit: "ml", ratio: profile.water, note: "人肌（30℃程度）に温める" });
+
+  // 3. 卵（水分の一部として扱うか、追加リッチ材料として扱うか）
+  if (hasEgg && (profile.egg || 0) > 0) {
+    const eggGrams = Math.round(flourGrams * profile.egg / 100);
+    finalIngredients.push({ name: "卵", grams: eggGrams, unit: "g", ratio: profile.egg });
   }
-  if ((profile.oliveoil || 0) > 0) {
-    const g = Math.round(flourGrams * profile.oliveoil / 100);
-    ingredients.push({ name: "オリーブオイル", grams: g, unit: "ml", ratio: profile.oliveoil });
+
+  // 4. 油脂（バター / 有塩バター / マーガリン / オリーブオイル）
+  const butterRatio = profile.butter || 0;
+  if (butterRatio > 0) {
+    let name = "無塩バター";
+    let note = "室温に戻す";
+    if (hasSaltedButter) { name = "有塩バター"; note = "室温に戻す（生地の塩を少し減らすと◎）"; }
+    else if (hasMargarine) { name = "マーガリン"; note = "室温に戻す"; }
+    finalIngredients.push({ name, grams: Math.round(flourGrams * butterRatio / 100), ratio: butterRatio, note });
+  } else if ((profile.oliveoil || 0) > 0) {
+    finalIngredients.push({ name: "オリーブオイル", grams: Math.round(flourGrams * profile.oliveoil / 100), unit: "ml", ratio: profile.oliveoil });
   }
-  if (hasEgg && eggRatio > 0) {
-    const g = Math.round(flourGrams * eggRatio / 100);
-    ingredients.push({ name: "卵", grams: g, unit: "g（約M玉1個）", ratio: eggRatio });
-  }
-  if ((profile.butter || 0) > 0) {
-    const g = Math.round(flourGrams * profile.butter / 100);
-    ingredients.push({ name: "無塩バター", grams: g, ratio: profile.butter, note: "室温に戻す" });
-  }
-  if ((profile.sugar || 0) > 0) {
-    const g = Math.round(flourGrams * profile.sugar / 100);
-    ingredients.push({ name: "砂糖", grams: g, ratio: profile.sugar });
-  }
-  if ((profile.salt || 0) > 0) {
-    const g = Math.round(flourGrams * profile.salt / 100);
-    ingredients.push({ name: "塩", grams: g, ratio: profile.salt });
-  }
-  ingredients.push({
+
+  // 5. 砂糖・塩・イースト
+  if ((profile.sugar || 0) > 0) finalIngredients.push({ name: "砂糖", grams: Math.round(flourGrams * profile.sugar / 100), ratio: profile.sugar });
+  if ((profile.salt || 0) > 0) finalIngredients.push({ name: "塩", grams: Math.round(flourGrams * profile.salt / 100), ratio: profile.salt });
+
+  const yeastRatio = Math.round(profile.yeast * yeastMult * 10) / 10;
+  finalIngredients.push({
     name: "ドライイースト",
     grams: Math.round(flourGrams * yeastRatio / 100 * 10) / 10,
     ratio: yeastRatio,
-    note: timeCondition === "30分以内" ? "通常の2倍量で時短" :
-          timeCondition === "一晩"     ? "少量で低温長時間発酵" : null,
+    note: timeCondition === "30分以内" ? "時短のため多め" : timeCondition === "一晩" ? "長時間発酵のため少なめ" : null
   });
 
-  // 発酵テキスト
   const fermentText = timeCondition === "一晩"
     ? `冷蔵（5℃）・8〜12時間 / 二次発酵 ${ferment.second.temp}℃・${ferment.second.time}分`
     : `一次発酵 ${ferment.first.temp}℃・${ferment.first.time}分 / 二次発酵 ${ferment.second.temp}℃・${ferment.second.time}分`;
 
   return {
     profile,
-    ingredients,
+    ingredients: finalIngredients,
     fermentation: fermentText,
     fermentConfig: ferment,
     bakingConfig:  baking,

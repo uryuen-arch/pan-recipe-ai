@@ -134,13 +134,18 @@ export async function POST(request) {
       return `${i + 1}. ${name}（${config.texture}・${status}${config.isVariation ? "・派生レシピ" : ""}）`;
     }).join("\n");
 
-    const fillingsText = `\n【具材指示】（最重要）
-入力材料から重要な具材を5〜8個選別し、以下のみ出力：
+    const fillingsText = `\n【具材・副資材指示】（最重要）
+1. 「入力材料」の中から、パンを特徴づける具材（チョコ、バナナ等）を5〜8個選別してください。
+2. 調理方法が「フライパン（揚げ物）」の場合、揚げる前の表面トッピングは禁止（焦げて落ちるため）。必ず「生地に混ぜる」「中に包む」か、揚げた後の「仕上げ（コーティング等）」にしてください。
+3. オーブン等の「焼成」の場合は、焼成前のトッピングもOKです。
+4. 全ての具材について、必ず「timing」と「inst」を出力してください。
+5. 出力項目：
+- name：具材名
 - ratio：ベーカーズ%
-- timing：タイミング（捏ね/成形/焼成前/仕上げ）
-- inst：動作（15文字以内：例「生地に包む」）`;
+- timing：タイミング（混ぜる/捏ね/一次発酵/成形/焼成前/仕上げ）
+- inst：具体的な動作（15文字以内）`;
 
-    const exampleFilling = `[{"name":"具材","ratio":20,"timing":"成形","inst":"生地に包む"}]`;
+    const exampleFilling = `[{"name":"バナナ","ratio":30,"timing":"成形","inst":"1cm角に切り包む"}]`;
 
     const prompt = `あなたはパン専門家です。3つのパンを提案してください。
 入力材料：${ingredients}
@@ -150,8 +155,7 @@ export async function POST(request) {
 【ルール】
 - レシピ名：日本語のみ
 - キャッチコピー：15文字以内
-- 具材(fillings)：入力材料にあるものと、ベース4項目以外の必須材料のみ。
-- 材料選別：材料が多い場合は重要なものに絞る。
+- 具材(fillings)：入力材料にあり、かつ生地の基本材料（強力粉、水、イースト、塩、砂糖、バター、卵、牛乳等）ではないもの。
 
 JSONのみ出力：
 {
@@ -172,7 +176,7 @@ JSONのみ出力：
 
     if (completion.choices[0].finish_reason === "length") {
       return Response.json(
-        { error: "AIの回答が途切れました。材料を減らしてお試しください。" },
+        { error: "AI의回答が途切れました。材料を減らしてお試しください。" },
         { status: 500 }
       );
     }
@@ -192,15 +196,20 @@ JSONのみ出力：
       const ai = aiData.recipes?.[i] || aiData.recipes?.[0] || {};
       const { calc, steps, flourGrams, texture, isVariation } = config;
 
-      const fillingsData = (ai.fillings || []).map(f => ({
-        name:             f.name,
-        grams:            Math.round(flourGrams * (f.ratio || 0) / 100),
-        ratio:            f.ratio || 0,
-        note:             null,
-        timing:           f.timing || null,
-        step_instruction: f.inst || null,
-        isFilling:        true,
-      }));
+      // 生地の基本材料名を定義（これらは具材リストから排除する）
+      const BASE_MATERIAL_NAMES = ["強力粉", "薄力粉", "全粒粉", "塩", "水", "ドライイースト", "牛乳", "ミルク", "卵", "無塩バター", "有塩バター", "バター", "マーガリン", "オリーブオイル", "砂糖"];
+
+      const fillingsData = (ai.fillings || [])
+        .filter(f => !BASE_MATERIAL_NAMES.some(base => f.name.includes(base) && !f.inst.includes("トッピング") && !f.inst.includes("仕上げ")))
+        .map(f => ({
+          name:             f.name,
+          grams:            Math.round(flourGrams * (f.ratio || 0) / 100),
+          ratio:            f.ratio || 0,
+          note:             null,
+          timing:           f.timing || null,
+          step_instruction: f.inst || null,
+          isFilling:        true,
+        }));
 
       // 工程に具材の使い方指示を統合
       const updatedSteps = steps.map(step => {
@@ -208,11 +217,13 @@ JSONのみ出力：
           if (!f.timing || !f.step_instruction) return false;
           const t = f.timing;
           const l = step.label;
+          // タイミングとラベルのマッチング
           if (l === "混ぜる" && t.includes("混ぜ")) return true;
           if (l === "捏ね" && (t.includes("捏ね") || t.includes("合わせ"))) return true;
-          if (l === "成形" && (t.includes("成形") || t.includes("巻き") || t.includes("包む") || t.includes("のせ"))) return true;
-          if (l === "焼成" && t.includes("焼成")) return true;
-          if (l === "仕上げ" && (t.includes("仕上げ") || t.includes("かけ"))) return true;
+          if (l === "一次発酵" && t.includes("一次発酵")) return true;
+          if (l === "成形" && (t.includes("成形") || t.includes("巻き") || t.includes("包む") || t.includes("抜く") || t.includes("のせ"))) return true;
+          if ((l === "焼成" || l.includes("焼成")) && (t.includes("焼成") || t.includes("揚げる"))) return true;
+          if (l === "仕上げ" && (t.includes("仕上げ") || t.includes("かけ") || t.includes("まぶす") || t.includes("冷ます"))) return true;
           return false;
         });
 
@@ -222,6 +233,18 @@ JSONのみ出力：
         }
         return step;
       });
+
+      // AIが指示を出したが、どの工程にもマッチしなかった具材を「成形」または「捏ね」に強制追加（情報の漏れを防ぐ）
+      const matchedFillingNames = updatedSteps.flatMap(s => s.desc.match(/【(.*?)】/g) || []).map(m => m.replace(/[【】]/g, ""));
+      const missingFillings = fillingsData.filter(f => !matchedFillingNames.includes(f.name));
+      
+      if (missingFillings.length > 0) {
+        const fallbackStep = updatedSteps.find(s => s.label === "成形") || updatedSteps.find(s => s.label === "捏ね") || updatedSteps[0];
+        if (fallbackStep) {
+          const extraInstructions = missingFillings.map(f => `【${f.name}】${f.step_instruction}`).join(" ");
+          fallbackStep.desc += ` ${extraInstructions}`;
+        }
+      }
 
       const MUST_MATERIALS = ["強力粉", "塩", "水", "ドライイースト"];
       const displayBaseIngredients = calc.ingredients.filter(ing => !MUST_MATERIALS.includes(ing.name));
@@ -235,9 +258,9 @@ JSONのみ出力：
       return {
         name:            ai.name || "名称未設定のパン",
         catchcopy:       ai.catchcopy || "",
-        feature:         config.profile?.description || "", // プロファイルから引用して節約
+        feature:         config.isVariation ? config.variationDesc : config.profile?.description,
         recommend:       "", 
-        point:           config.variationDesc || "丁寧に作業しましょう。", // 既存データから引用
+        point:           config.stepsNote || "形を整えて丁寧に焼きましょう。",
         fillings:        fillingsData,
         isVariation,
         variationName:   config.variationName,
