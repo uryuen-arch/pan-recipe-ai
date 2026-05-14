@@ -43,7 +43,7 @@ function hasIngredient(normalizedList, target) {
 
 // 基本材料（常に持っているとみなす）
 const BASE_ALWAYS_HAVE = [
-  "強力粉", "イースト", "ドライイースト", "塩", "水",
+  "強力粉", "イースト", "ドライイースト", "塩", "水", "砂糖",
 ];
 
 // 代替不可の材料
@@ -229,7 +229,10 @@ export function matchVariations(userIngredients, variations, matchedProfiles) {
 // コンポーネント（パーツ）のマッチング
 // ─────────────────────────────────────
 export function matchComponents(userIngredients, components) {
-  const normalized = normalizeUserIngredients(userIngredients);
+  const normalized = normalizeUserIngredients([
+    ...userIngredients,
+    ...BASE_ALWAYS_HAVE,
+  ]);
 
   return components.map(comp => {
     const required = comp.required_ingredients || [];

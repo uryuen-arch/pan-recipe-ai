@@ -33,10 +33,13 @@ export async function POST(request) {
     const userIngredients = ingredients.split(/[,、\n]/).map(s => s.trim()).filter(Boolean);
 
     // 1. 各種マスタデータの取得
+    const difficultyLevel = difficulty === "本格" ? ["本格", "簡単", "超簡単"] : 
+                           difficulty === "簡単" ? ["簡単", "超簡単"] : ["超簡単"];
+
     const [profilesRes, componentsRes, breadsRes] = await Promise.all([
-      supabase.from("bread_profiles").select("*").eq("is_active", true).eq("difficulty", difficulty),
+      supabase.from("bread_profiles").select("*").eq("is_active", true).in("difficulty", difficultyLevel),
       supabase.from("components").select("*"),
-      supabase.from("breads").select("*").eq("difficulty", difficulty)
+      supabase.from("breads").select("*").in("difficulty", difficultyLevel)
     ]);
 
     if (profilesRes.error) throw profilesRes.error;
