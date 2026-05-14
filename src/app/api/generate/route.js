@@ -176,6 +176,8 @@ JSON出力：
         name: ai.name || config.breadName || "カスタムパン",
         catchcopy: ai.catchcopy || "",
         feature: config.breadDesc || config.profile?.description || "",
+        category: config.category || 'almost',
+        missing: config.missing || [],
         ingredients: [...formatIngredients(adjustedBaseIngredients.filter(ing => !["強力粉","塩","水","ドライイースト"].includes(ing.name))), ...fillingsData.map(f => `${f.name} ${f.grams}g`)],
         steps: updatedSteps.map(s => `【${s.label}】${s.desc}${s.time ? `（目安：${s.time}）` : ""}`),
         ingredientsData: [...adjustedBaseIngredients, ...fillingsData],

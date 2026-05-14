@@ -9,11 +9,11 @@ const CATEGORY_CONFIG = {
 const RANK_LABELS = ["①", "②", "③"];
 
 export default function RecipeList({ recipes, onSelect, onRegenerate, loading }) {
-  // カテゴリ別にグループ化
+  // カテゴリ別にグループ化（未定義の場合は almost にフォールバック）
   const grouped = {
-    perfect: recipes.filter(r => r.category === "perfect"),
-    almost:  recipes.filter(r => r.category === "almost"),
-    lacking: recipes.filter(r => r.category === "lacking"),
+    perfect: recipes.filter(r => (r.category || 'almost') === "perfect"),
+    almost:  recipes.filter(r => (r.category || 'almost') === "almost"),
+    lacking: recipes.filter(r => (r.category || 'almost') === "lacking"),
   };
 
   return (
