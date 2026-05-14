@@ -22,6 +22,7 @@ const FALLBACK_PROFILES = [
 
 export async function POST(request) {
   try {
+    console.log("--- Generating Recipe START ---");
     const body = await request.json().catch(() => ({}));
     const { ingredients, conditions = [] } = body;
 
@@ -42,14 +43,16 @@ export async function POST(request) {
       supabase.from("breads").select("*")
     ]);
 
-    let profiles = profilesRes.data && profilesRes.data.length > 0 ? profilesRes.data : FALLBACK_PROFILES;
+    let profiles = (profilesRes.data && profilesRes.data.length > 0) ? profilesRes.data : FALLBACK_PROFILES;
     let components = componentsRes.data || [];
     let breads = breadsRes.data || [];
+    console.log(`DB Fetched: profiles=${profiles.length}, components=${components.length}, breads=${breads.length}`);
 
     // 2. マッチングエンジンの実行
     const matchedProfiles = matchRecipes(userIngredients, profiles);
     const matchedComponents = matchComponents(userIngredients, components);
     const matchedBreadsList = matchBreads(matchedProfiles, matchedComponents, breads);
+    console.log(`Engine Matched: breads=${matchedBreadsList.length}, profiles=${matchedProfiles.length}`);
 
     // 3. 提案候補の選択
     let finalSelection = matchedBreadsList.slice(0, 3).map(b => ({ ...b, type: "bread" }));
@@ -61,7 +64,6 @@ export async function POST(request) {
         .map(p => ({ ...p, type: "base" }));
       finalSelection = [...finalSelection, ...baseOptions];
     }
-    // 予備の予備
     if (finalSelection.length < 3) {
       FALLBACK_PROFILES.forEach(p => {
         if (finalSelection.length < 3 && !finalSelection.some(f => (f.profile?.id === p.id || f.doughProfile?.id === p.id))) {
@@ -69,6 +71,7 @@ export async function POST(request) {
         }
       });
     }
+    console.log(`Final Selection Count: ${finalSelection.length}`);
 
     // 4. レシピ構成の組み立て
     const FLOUR_AMOUNTS = [250, 300, 350];
@@ -79,9 +82,8 @@ export async function POST(request) {
       const texture = profile?.texture || "ふんわり";
       const stepsType = isBread ? item.bread.steps_type : profile?.steps_type || "standard";
 
-      const profileWithStepsType = { ...profile, steps_type: stepsType };
-      const calc = calcRecipe({ flourGrams, profile: profileWithStepsType, timeCondition, method, userIngredients });
-      let baseSteps = getStepsTemplate(texture, method, timeCondition, { ...calc, profile: profileWithStepsType });
+      const calc = calcRecipe({ flourGrams, profile: { ...profile, steps_type: stepsType }, timeCondition, method, userIngredients });
+      let baseSteps = getStepsTemplate(texture, method, timeCondition, { ...calc, profile: { ...profile, steps_type: stepsType } });
 
       if (isBread && item.components && item.components.length > 0) {
         const componentInstructions = item.components.flatMap(c => (c.recipe_steps || []).map(step => `【${c.name}作り】${step}`));
@@ -90,37 +92,36 @@ export async function POST(request) {
       }
 
       return {
-        item, isBread, profile: profileWithStepsType, calc, steps: baseSteps, flourGrams, texture,
+        item, isBread, profile, calc, steps: baseSteps, flourGrams, texture,
         category: item.category || 'almost', missing: item.missing || [],
         breadName: isBread ? item.bread.name : null, breadDesc: isBread ? item.bread.description : null,
       };
     });
 
     const profileSummary = recipeConfigs.map((config, i) => {
-      const name = config.isBread ? config.breadName : config.profile?.type;
-      const status = config.category === "perfect" ? "今すぐ作れる" : `${config.missing.join("・")}が必要`;
+      const name = config.isBread ? config.breadName : (config.profile?.type || "基本のパン");
+      const status = config.category === "perfect" ? "今すぐ作れる" : `${(config.missing || []).join("・")}が必要`;
       return `${i + 1}. ${name}（${config.texture}・${status}）`;
     }).join("\n");
 
+    console.log("AI Summary Input:\n", profileSummary);
+
+    // 5. AI呼び出し
     const prompt = `あなたはパン専門家です。3つのパンを提案してください。
 入力材料：${ingredients}
 条件：${timeCondition}, ${method}, ${difficulty}
 対象パン：\n${profileSummary}
 
-【ルール】
-- レシピ名：対象パンの名前に、入力材料（バナナ等）を自由に組み合わせて命名（例：バナナメロンパン）。
-- キャッチコピー：15文字以内。
-- 具材(fillings)：入力材料を最大限活用してください。
-
-JSON出力：
+JSON出力例：
 {
   "recipes": [
-    {"name":"","catchcopy":"","fillings":[{"name":"バナナ","ratio":20,"timing":"捏ね","inst":"練り込む"}]},
+    {"name":"","catchcopy":"","fillings":[{"name":"具材","ratio":20,"timing":"捏ね","inst":"練り込む"}]},
     {"name":"","catchcopy":"","fillings":[]},
     {"name":"","catchcopy":"","fillings":[]}
   ]
 }`;
 
+    console.log("Calling Groq API...");
     const completion = await client.chat.completions.create({
       model: "llama-3.1-8b-instant",
       messages: [{ role: "user", content: prompt }],
@@ -129,18 +130,31 @@ JSON出力：
       response_format: { type: "json_object" },
     });
 
-    const aiData = JSON.parse(completion.choices[0].message.content);
+    const rawContent = completion.choices[0].message.content;
+    console.log("Groq Success. Parsing JSON...");
+    
+    let aiData;
+    try {
+      aiData = JSON.parse(rawContent);
+    } catch (parseErr) {
+      console.error("AI JSON Parse Error. Content:", rawContent);
+      return Response.json({ error: "AIの回答を解析できませんでした。再度お試しください。" }, { status: 500 });
+    }
 
+    if (!aiData.recipes || !Array.isArray(aiData.recipes)) {
+      console.error("AI response invalid format:", aiData);
+      return Response.json({ error: "AIの回答が正しくありません。" }, { status: 500 });
+    }
+
+    // 6. レシピデータの最終構築
     const recipes = recipeConfigs.map((config, i) => {
-      const ai = aiData.recipes?.[i] || aiData.recipes?.[0] || {};
+      const ai = aiData.recipes[i] || aiData.recipes[0] || {};
       const { calc, steps, flourGrams, texture, isBread } = config;
 
       const BASE_MATERIAL_NAMES = ["強力粉", "薄力粉", "全粒粉", "塩", "水", "ドライイースト", "牛乳", "ミルク", "卵", "無塩バター", "有塩バター", "バター", "マーガリン", "オリーブオイル", "砂糖"];
       const rawFillings = (ai.fillings || []).filter(f => {
         if (!f || !f.name) return false;
-        const name = f.name;
-        const inst = f.inst || "";
-        return !BASE_MATERIAL_NAMES.some(base => name.includes(base) && !inst.includes("トッピング") && !inst.includes("仕上げ"));
+        return !BASE_MATERIAL_NAMES.some(base => f.name.includes(base) && !String(f.inst || "").includes("仕上げ"));
       });
 
       let liquidReduction = 0;
@@ -148,10 +162,9 @@ JSON出力：
 
       const fillingsData = rawFillings.map(f => {
         const grams = Math.round(flourGrams * (f.ratio || 0) / 100);
-        const name = f.name || "不明な材料";
-        const inst = f.inst || "";
+        const name = f.name || "具材";
         const timing = f.timing || "";
-
+        const inst = f.inst || "";
         if (timing === "捏ね" || inst.includes("練り込む")) {
           const adj = PASTE_ADJUSTMENTS[name] || Object.entries(PASTE_ADJUSTMENTS).find(([k]) => name.includes(k))?.[1];
           if (adj) {
@@ -162,7 +175,6 @@ JSON出力：
         return { name, grams, ratio: f.ratio || 0, timing: timing || null, step_instruction: inst || null, isFilling: true };
       });
 
-
       const adjustedBaseIngredients = calc.ingredients.map(ing => {
         let newGrams = (ing.name === "牛乳" || ing.name === "水") ? Math.max(0, ing.grams - Math.round(flourGrams * liquidReduction / 100)) :
                        ing.name === "砂糖" ? Math.max(0, ing.grams - Math.round(flourGrams * sugarReduction / 100)) : ing.grams;
@@ -172,7 +184,7 @@ JSON出力：
       const updatedSteps = steps.map(step => {
         const matchingFillings = fillingsData.filter(f => {
           if (!f.timing || !f.step_instruction) return false;
-          const t = f.timing, l = step.label;
+          const t = String(f.timing), l = step.label;
           if (l === "混ぜる" && t.includes("混ぜ")) return true;
           if (l === "捏ね" && (t.includes("捏ね") || t.includes("合わせ"))) return true;
           if (l === "成形" && (t.includes("成形") || t.includes("巻き") || t.includes("包む") || t.includes("のせ"))) return true;
@@ -191,8 +203,8 @@ JSON出力：
         name: ai.name || config.breadName || "カスタムパン",
         catchcopy: ai.catchcopy || "",
         feature: config.breadDesc || config.profile?.description || "",
-        category: config.category || 'almost',
-        missing: config.missing || [],
+        category: config.category,
+        missing: config.missing,
         ingredients: [...formatIngredients(adjustedBaseIngredients.filter(ing => !["強力粉","塩","水","ドライイースト"].includes(ing.name))), ...fillingsData.map(f => `${f.name} ${f.grams}g`)],
         steps: updatedSteps.map(s => `【${s.label}】${s.desc}${s.time ? `（目安：${s.time}）` : ""}`),
         ingredientsData: [...adjustedBaseIngredients, ...fillingsData],
@@ -206,9 +218,10 @@ JSON出力：
       };
     });
 
+    console.log("--- Generating Recipe END (Success) ---");
     return Response.json({ recipes });
   } catch (error) {
-    console.error("API error:", error);
-    return Response.json({ error: "レシピ生成中にエラーが発生しました。" }, { status: 500 });
+    console.error("Critical API error:", error);
+    return Response.json({ error: `エラーが発生しました: ${error.message}` }, { status: 500 });
   }
 }
