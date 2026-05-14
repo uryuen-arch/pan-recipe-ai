@@ -32,20 +32,17 @@ export async function POST(request) {
 
     const userIngredients = ingredients.split(/[,、\n]/).map(s => s.trim()).filter(Boolean);
 
-    // 1. 各種マスタデータの取得
-    const difficultyLevel = difficulty === "本格" ? ["本格", "簡単", "超簡単"] : 
-                           difficulty === "簡単" ? ["簡単", "超簡単"] : ["超簡単"];
-
+    // 1. 各種マスタデータの取得（フィルタを緩和）
     const [profilesRes, componentsRes, breadsRes] = await Promise.all([
-      supabase.from("bread_profiles").select("*").eq("is_active", true).in("difficulty", difficultyLevel),
+      supabase.from("bread_profiles").select("*"), // is_active フィルタを一時的に外す（確実に出すため）
       supabase.from("components").select("*"),
-      supabase.from("breads").select("*").in("difficulty", difficultyLevel)
+      supabase.from("breads").select("*") // difficulty フィルタも外して全ロード
     ]);
 
     if (profilesRes.error) throw profilesRes.error;
     
     // 2. マッチングエンジンの実行
-    const matchedProfiles = matchRecipes(userIngredients, profilesRes.data);
+    const matchedProfiles = matchRecipes(userIngredients, profilesRes.data || []);
     const matchedComponents = matchComponents(userIngredients, componentsRes.data || []);
     const matchedBreadsList = matchBreads(matchedProfiles, matchedComponents, breadsRes.data || []);
 
@@ -108,12 +105,12 @@ export async function POST(request) {
 
     const fillingsText = `\n【具材・副資材指示】（最重要）
 1. 「入力材料」の中から、パンを特徴づける具材を選別してください。
-2. ペースト状にできる食材（バナナ、かぼちゃ等）は「捏ね」のタイミングで「生地に練り込む」提案を優先してください。
+2. ペースト状にできる食材（バナナ、かぼちゃ、ほうれん草等）は「捏ね」のタイミングで「生地に練り込む」提案を優先してください。
 3. 調理方法が「揚げ物」の場合、表面トッピングは禁止。必ず「捏ね」か「成形」、または揚げた後の「仕上げ」にしてください。
 4. 全ての具材について、必ず「timing」と「inst」を出力してください。
 5. 出力項目：
 - name：具材名
-- ratio：ベーカーズ%
+- ratio：ベーカーズ%（練り込みは最大30%まで）
 - timing：タイミング（混ぜる/捏ね/一次発酵/成形/焼成前/仕上げ）
 - inst：動作（15文字以内）`;
 
