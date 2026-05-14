@@ -136,22 +136,32 @@ JSON出力：
       const { calc, steps, flourGrams, texture, isBread } = config;
 
       const BASE_MATERIAL_NAMES = ["強力粉", "薄力粉", "全粒粉", "塩", "水", "ドライイースト", "牛乳", "ミルク", "卵", "無塩バター", "有塩バター", "バター", "マーガリン", "オリーブオイル", "砂糖"];
-      const rawFillings = (ai.fillings || []).filter(f => !BASE_MATERIAL_NAMES.some(base => f.name.includes(base) && !f.inst.includes("仕上げ")));
+      const rawFillings = (ai.fillings || []).filter(f => {
+        if (!f || !f.name) return false;
+        const name = f.name;
+        const inst = f.inst || "";
+        return !BASE_MATERIAL_NAMES.some(base => name.includes(base) && !inst.includes("トッピング") && !inst.includes("仕上げ"));
+      });
 
       let liquidReduction = 0;
       let sugarReduction = 0;
 
       const fillingsData = rawFillings.map(f => {
         const grams = Math.round(flourGrams * (f.ratio || 0) / 100);
-        if (f.timing === "捏ね" || f.inst.includes("練り込む")) {
-          const adj = PASTE_ADJUSTMENTS[f.name] || Object.entries(PASTE_ADJUSTMENTS).find(([k]) => f.name.includes(k))?.[1];
+        const name = f.name || "不明な材料";
+        const inst = f.inst || "";
+        const timing = f.timing || "";
+
+        if (timing === "捏ね" || inst.includes("練り込む")) {
+          const adj = PASTE_ADJUSTMENTS[name] || Object.entries(PASTE_ADJUSTMENTS).find(([k]) => name.includes(k))?.[1];
           if (adj) {
             liquidReduction += (f.ratio || 0) * adj.liquidFactor;
             sugarReduction += (f.ratio || 0) * adj.sugarFactor;
           }
         }
-        return { name: f.name, grams, ratio: f.ratio || 0, timing: f.timing || null, step_instruction: f.inst || null, isFilling: true };
+        return { name, grams, ratio: f.ratio || 0, timing: timing || null, step_instruction: inst || null, isFilling: true };
       });
+
 
       const adjustedBaseIngredients = calc.ingredients.map(ing => {
         let newGrams = (ing.name === "牛乳" || ing.name === "水") ? Math.max(0, ing.grams - Math.round(flourGrams * liquidReduction / 100)) :

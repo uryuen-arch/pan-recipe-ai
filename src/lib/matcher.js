@@ -231,7 +231,7 @@ export function matchBreads(matchedProfiles, matchedComponents, breads) {
     // 入力材料（基本材料以外）がどれだけ活用されているかをボーナススコアに
     const fillings = extractFillings(userIngredients);
     const usedFillingsCount = fillings.filter(f => 
-      bread.name?.includes(f) || bread.description?.includes(f) ||
+      (bread.name?.includes(f) || bread.description?.includes(f)) ||
       breadComponents.some(bc => bc.name?.includes(f) || bc.description?.includes(f))
     ).length;
 
