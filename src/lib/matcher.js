@@ -228,6 +228,13 @@ export function matchBreads(matchedProfiles, matchedComponents, breads) {
     else if (doughProfile.category === "almost" || anyComponentAlmost) category = "almost";
     else category = "perfect";
 
+    // 入力材料（基本材料以外）がどれだけ活用されているかをボーナススコアに
+    const fillings = extractFillings(userIngredients);
+    const usedFillingsCount = fillings.filter(f => 
+      bread.name?.includes(f) || bread.description?.includes(f) ||
+      breadComponents.some(bc => bc.name?.includes(f) || bc.description?.includes(f))
+    ).length;
+
     results.push({
       bread,
       doughProfile: doughProfile.profile,
@@ -235,7 +242,7 @@ export function matchBreads(matchedProfiles, matchedComponents, breads) {
       category,
       missing: Array.from(new Set([...doughProfile.missing, ...breadComponents.flatMap(c => c.missing)])),
       isBread: true,
-      score: doughProfile.score
+      score: (doughProfile.score || 0) + (usedFillingsCount * 2) // 具材活用ボーナス
     });
   }
 

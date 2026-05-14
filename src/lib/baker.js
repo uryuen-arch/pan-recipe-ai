@@ -115,8 +115,9 @@ export function calcRecipe({
   // 2. 水分（牛乳優先置換）
   if (hasMilk && targetWaterRatio > 0) {
     // 水を牛乳に置き換える (水×1.1)
-    const milkGrams = Math.round(flourGrams * (targetWaterRatio * 1.1) / 100);
-    finalIngredients.push({ name: "牛乳", grams: milkGrams, unit: "ml", ratio: targetWaterRatio * 1.1, note: "人肌に温める" });
+    const milkRatio = Math.round(targetWaterRatio * 1.1 * 10) / 10;
+    const milkGrams = Math.round(flourGrams * milkRatio / 100);
+    finalIngredients.push({ name: "牛乳", grams: milkGrams, unit: "ml", ratio: milkRatio, note: "人肌に温める" });
   } else if (targetWaterRatio > 0) {
     const waterGrams = Math.round(flourGrams * targetWaterRatio / 100);
     finalIngredients.push({ name: "水", grams: waterGrams, unit: "ml", ratio: targetWaterRatio, note: "人肌に温める" });

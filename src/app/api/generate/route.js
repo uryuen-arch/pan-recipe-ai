@@ -107,10 +107,15 @@ export async function POST(request) {
 条件：${timeCondition}, ${method}, ${difficulty}
 対象パン：\n${profileSummary}
 
+【ルール】
+- レシピ名：対象パンの名前に、入力材料（バナナ等）を自由に組み合わせて命名（例：バナナメロンパン）。
+- キャッチコピー：15文字以内。
+- 具材(fillings)：入力材料を最大限活用してください。
+
 JSON出力：
 {
   "recipes": [
-    {"name":"","catchcopy":"","fillings":[{"name":"具材","ratio":20,"timing":"捏ね","inst":"練り込む"}]},
+    {"name":"","catchcopy":"","fillings":[{"name":"バナナ","ratio":20,"timing":"捏ね","inst":"練り込む"}]},
     {"name":"","catchcopy":"","fillings":[]},
     {"name":"","catchcopy":"","fillings":[]}
   ]
