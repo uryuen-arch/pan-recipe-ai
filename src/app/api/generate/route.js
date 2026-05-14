@@ -43,17 +43,21 @@ function selectTop3(matchedVariations, matchedProfiles) {
 
 export async function POST(request) {
   try {
-    const { ingredients, conditions } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const { ingredients, conditions = [] } = body;
 
-    if (!ingredients || ingredients.trim() === "") {
-      return Response.json({ error: "材料を入力してください" }, { status: 400 });
+    if (!ingredients || typeof ingredients !== "string" || ingredients.trim().length < 2) {
+      return Response.json(
+        { error: "材料を具体的に入力してください（例：強力粉、塩、イースト）" },
+        { status: 400 }
+      );
     }
 
     const timeCondition = conditions.find(c => TIME_MAP[c])       || "1時間";
     const method        = conditions.find(c => METHOD_MAP[c])     || "オーブン";
     const difficulty    = conditions.find(c => DIFFICULTY_MAP[c]) || "簡単";
 
-    const userIngredients = ingredients.split(/[,、]/).map(s => s.trim()).filter(Boolean);
+    const userIngredients = ingredients.split(/[,、\n]/).map(s => s.trim()).filter(Boolean);
 
     // 条件を解析
     const textureConditions = conditions.filter(c => ["ふんわり", "しっとり", "ハード系"].includes(c));
@@ -130,21 +134,19 @@ export async function POST(request) {
       return `${i + 1}. ${name}（${config.texture}・${status}${config.isVariation ? "・派生レシピ" : ""}）`;
     }).join("\n");
 
-    const fillingsText = fillings.length > 0
-      ? `\n【具材の分量・使い方指示】（必須）
-以下の具材は必ずfillingsに追加してください：${fillings.join("・")}
-各具材について以下を記載してください：
+    const fillingsText = `\n【具材・副資材の選別と指示】（最重要）
+1. 「入力材料」の中から、パンを特徴づける具材や副資材を5〜8個選別し、fillingsリストに追加してください。
+2. 「家にある材料（入力材料）」にないものは、ベースの4項目（強力粉・塩・水・ドライイースト）以外は絶対に使用しないでください。
+3. ベースの4項目を「パン生地以外（トッピング、クッキー生地、折り込み用等）」に使う場合は、用途を明記して含めてください（例：「仕上げ用強力粉」）。
+4. パン生地そのもののための「強力粉、塩、水、ドライイースト」は、絶対にfillingsリストに含めないでください。
+各具材について簡潔に以下を記載してください：
 - grams：粉量300g基準の分量(g)
 - ratio：ベーカーズ%
-- note：下処理メモ（例：1cm幅に切る）
-- timing：使うタイミング（「粉類と混ぜる」「捏ね後に折り込む」「成形時に巻き込む」「成形時に包む」「成形時にのせる」「焼成前にかける」のいずれか）
-- step_instruction：工程への具体的な指示（例：「強力粉と一緒にボウルに入れてよく混ぜる」）
-絶対に空配列[]にしないでください。`
-      : "";
+- note：下処理（10文字以内）
+- timing：使うタイミング
+- step_instruction：工程指示（30文字以内）`;
 
-    const exampleFilling = fillings.length > 0
-      ? `[{"name":"${fillings[0]}","grams":60,"ratio":20,"note":"下処理メモ","timing":"成形時に巻き込む","step_instruction":"生地を伸ばした後、${fillings[0]}を均等に散らして巻き込む"}]`
-      : "[]";
+    const exampleFilling = `[{"name":"具材名","grams":60,"ratio":20,"note":"下処理","timing":"タイミング","step_instruction":"指示"}]`;
 
     const prompt = `あなたはパン作りの専門家です。
 以下の3種類のパンに対して、それぞれ名前とコピーを考えてください。
@@ -152,49 +154,67 @@ export async function POST(request) {
 マッチしたパン：
 ${profileSummary}
 
+【表示・使用ロジック（厳守）】
+1. パン生地（マスト材料）の非表示:
+   - パンのベース生地として使用する「強力粉、塩、水、ドライイースト」は、絶対にレシピの材料リストには表示しません（fillingsにも含めない）。
+2. 例外的な表示条件:
+   - ただし、これら4項目をパン生地以外（例：折り込みシート、クッキー生地、トッピング）を作るために使用する場合は、用途を明記してfillingsに記載してください（例：「折り込み用強力粉」）。
+3. 「家にある材料」の厳守:
+   - 以下の「入力材料」にないものは、ベースの4項目（強力粉・塩・水・ドライイースト）以外は一切使用しないでください。
+4. 出力フォーマットの固定:
+   - 材料リスト（fillings）は必ず「ベース生地以外に必要なもの（具材、トッピング、副資材）」だけが並ぶようにしてください。
+
 条件：
 - 時間：${timeCondition}
 - 調理方法：${method}
 - 難易度：${difficulty}
-- 使用食材：${ingredients}
+- 入力材料：${ingredients}
 ${fillingsText}
 
-【レシピ名のルール】
-- 日本語のみ（英語・カタカナ横文字は禁止）
-- パンの種類名を含める（例：ふわふわミルクロール・バター香る食パン）
-- 具材がある場合は具材名を含める（例：リンゴとレーズンのパン）
-- 造語・横文字は禁止・シンプルで親しみやすい名前
+【出力ルール】
+- レシピ名：日本語のみ、造語禁止
+- キャッチコピー：20文字以内
+- 特徴：3つカンマ区切り
+- ポイント：30文字以内の簡潔なコツを1つ
+- 手順指示（fillings内）：各30文字以内
 
-3つそれぞれに以下を答えてください：
-- name：レシピ名
-- catchcopy：一言キャッチコピー（20文字以内）
-- feature：特徴3つカンマ区切り
-- recommend：他との比較で際立つ一言
-- point：失敗しないコツ1〜2文
-- fillings：具材リスト（timingとstep_instructionを必ず含める）
-
-JSON形式のみ。バッククォートや説明文は不要です。
-[
-  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}},
-  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}},
-  {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}}
-]`;
+JSON形式で出力してください。
+{
+  "recipes": [
+    {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}},
+    {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}},
+    {"name":"","catchcopy":"","feature":"","recommend":"","point":"","fillings":${exampleFilling}}
+  ]
+}`;
 
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 1200,
-      temperature: 0.8,
+      max_tokens: 3000,
+      temperature: 0.3,
+      response_format: { type: "json_object" },
     });
 
-    const text    = completion.choices[0].message.content;
-    const cleaned = text.replace(/```json|```/g, "").trim();
-    const aiData  = JSON.parse(cleaned);
+    if (completion.choices[0].finish_reason === "length") {
+      return Response.json(
+        { error: "AIの回答が長すぎて途切れてしまいました。材料を減らすか、もう一度お試しください。" },
+        { status: 500 }
+      );
+    }
+
+    const text = completion.choices[0].message.content;
+    let aiData;
+    try {
+      aiData = JSON.parse(text);
+    } catch (e) {
+      console.error("AI JSON Parse Error. Raw text:", text);
+      throw new Error("AIの回答を解析できませんでした。もう一度お試しください。");
+    }
 
     const servingsMap = { 250: "6個分", 300: "8個分", 350: "10個分" };
 
     const recipes = recipeConfigs.map((config, i) => {
-      const ai = aiData[i] || aiData[0];
+      const ai = aiData.recipes?.[i] || aiData.recipes?.[0] || {};
       const { calc, steps, flourGrams, texture, isVariation } = config;
 
       const fillingsData = (ai.fillings || []).map(f => ({
@@ -207,18 +227,21 @@ JSON形式のみ。バッククォートや説明文は不要です。
         isFilling:        true,
       }));
 
+      const MUST_MATERIALS = ["強力粉", "塩", "水", "ドライイースト"];
+      const displayBaseIngredients = calc.ingredients.filter(ing => !MUST_MATERIALS.includes(ing.name));
+
       const allIngredientsData = [...calc.ingredients, ...fillingsData];
       const allIngredients = [
-        ...formatIngredients(calc.ingredients),
+        ...formatIngredients(displayBaseIngredients),
         ...fillingsData.map(f => `${f.name} ${f.grams}g${f.note ? `（${f.note}）` : ""}`),
       ];
 
       return {
-        name:            ai.name,
-        catchcopy:       ai.catchcopy,
-        feature:         ai.feature,
-        recommend:       ai.recommend,
-        point:           ai.point,
+        name:            ai.name || "名称未設定のパン",
+        catchcopy:       ai.catchcopy || "",
+        feature:         ai.feature || "",
+        recommend:       ai.recommend || "",
+        point:           ai.point || "",
         fillings:        fillingsData,
         isVariation,
         variationName:   config.variationName,
@@ -251,9 +274,26 @@ JSON形式のみ。バッククォートや説明文は不要です。
     return Response.json({ recipes });
   } catch (error) {
     console.error("API error:", error);
+
+    // クォータ（制限）エラーの判定
+    if (error.status === 429) {
+      return Response.json(
+        { error: "AIの利用制限に達しました。しばらく時間を置いてから再度お試しください。" },
+        { status: 429 }
+      );
+    }
+
+    // ネットワークエラーの判定
+    if (error.name === "FetchError" || error.code === "ECONNRESET") {
+      return Response.json(
+        { error: "ネットワーク接続エラーが発生しました。通信環境を確認してください。" },
+        { status: 503 }
+      );
+    }
+
     return Response.json(
-      { error: "レシピの生成に失敗しました。もう一度お試しください。" },
-      { status: 500 }
+      { error: error.message.includes("AIの回答") ? error.message : "レシピの生成に失敗しました。もう一度お試しください。" },
+      { status: error.status || 500 }
     );
   }
 }

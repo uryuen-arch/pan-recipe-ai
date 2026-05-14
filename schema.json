@@ -1,0 +1,494 @@
+[
+  {
+    "table_name": "bread_profiles",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "texture",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "difficulty",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "type",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "description",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "water",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "milk",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "butter",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "oliveoil",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "sugar",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "salt",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "yeast",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "egg",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "whole_wheat",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "baking_temp_oven",
+    "data_type": "integer",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "baking_time_oven",
+    "data_type": "integer",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "baking_temp_toaster",
+    "data_type": "integer",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "baking_time_toaster",
+    "data_type": "integer",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "baking_note_pan",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "baking_note_hb",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "is_active",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "required_ingredients",
+    "data_type": "ARRAY",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "optional_ingredients",
+    "data_type": "ARRAY",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "substitutes",
+    "data_type": "jsonb",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "steps_type",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "bread_profiles",
+    "column_name": "dough_type",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "breads",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "breads",
+    "column_name": "name",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "breads",
+    "column_name": "dough_type",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "breads",
+    "column_name": "texture",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "breads",
+    "column_name": "difficulty",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "breads",
+    "column_name": "description",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "breads",
+    "column_name": "component_ids",
+    "data_type": "ARRAY",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "breads",
+    "column_name": "steps_type",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "breads",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "components",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "components",
+    "column_name": "name",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "components",
+    "column_name": "type",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "components",
+    "column_name": "description",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "components",
+    "column_name": "required_ingredients",
+    "data_type": "ARRAY",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "components",
+    "column_name": "optional_ingredients",
+    "data_type": "ARRAY",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "components",
+    "column_name": "recipe_steps",
+    "data_type": "ARRAY",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "components",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "favorites",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "favorites",
+    "column_name": "recipe_id",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "favorites",
+    "column_name": "session_id",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "favorites",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "products",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "products",
+    "column_name": "name",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "products",
+    "column_name": "category",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "products",
+    "column_name": "protein",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "products",
+    "column_name": "ash",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "products",
+    "column_name": "description",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "products",
+    "column_name": "room_url",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "products",
+    "column_name": "image_url",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "products",
+    "column_name": "tags",
+    "data_type": "ARRAY",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "products",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "name",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "texture",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "time",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "servings",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "sweetness",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "difficulty_level",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "catchcopy",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "feature",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "recommend",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "ingredients",
+    "data_type": "jsonb",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "steps",
+    "data_type": "jsonb",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "fermentation",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "point",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "recipes",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "variations",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "variations",
+    "column_name": "base_dough_type",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "variations",
+    "column_name": "variation_name",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "variations",
+    "column_name": "requires",
+    "data_type": "ARRAY",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "variations",
+    "column_name": "optional",
+    "data_type": "ARRAY",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "variations",
+    "column_name": "description",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "variations",
+    "column_name": "steps_note",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "variations",
+    "column_name": "steps_type",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "variations",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  }
+]
