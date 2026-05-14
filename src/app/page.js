@@ -102,7 +102,14 @@ export default function Home() {
         body: JSON.stringify({ ingredients, conditions }),
       });
       const data = await res.json();
+      console.log("API Response Data:", data); // デバッグ用
+
       if (!res.ok) throw new Error(data.error || "生成に失敗しました");
+      
+      if (!data.recipes || data.recipes.length === 0) {
+        throw new Error("レシピ候補が見つかりませんでした。条件を変えてお試しください。");
+      }
+
       setRecipes(data.recipes);
       setShowRecipes(true);
       const newCount = incrementUsage();
