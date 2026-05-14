@@ -51,7 +51,7 @@ export async function POST(request) {
     // 2. マッチングエンジンの実行
     const matchedProfiles = matchRecipes(userIngredients, profiles);
     const matchedComponents = matchComponents(userIngredients, components);
-    const matchedBreadsList = matchBreads(matchedProfiles, matchedComponents, breads);
+    const matchedBreadsList = matchBreads(matchedProfiles, matchedComponents, breads, userIngredients);
     console.log(`Engine Matched: breads=${matchedBreadsList.length}, profiles=${matchedProfiles.length}`);
 
     // 3. 提案候補の選択

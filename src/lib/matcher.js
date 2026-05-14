@@ -19,45 +19,32 @@ const NORMALIZE_MAP = {
 
 // ユーザー入力を正規化
 function normalizeIngredient(input) {
-  const trimmed = input.trim();
+  const trimmed = String(input || "").trim();
   for (const [canonical, aliases] of Object.entries(NORMALIZE_MAP)) {
     if (aliases.some(alias => trimmed.includes(alias)) || trimmed.includes(canonical)) {
       return canonical;
     }
   }
-  return trimmed; // マッチしない場合はそのまま返す
+  return trimmed;
 }
 
-// ユーザーの材料リストを正規化
 function normalizeUserIngredients(userIngredients) {
-  return userIngredients.map(normalizeIngredient);
+  return (userIngredients || []).map(normalizeIngredient);
 }
 
-// 材料が含まれているか確認
 function hasIngredient(normalizedList, target) {
   const normalizedTarget = normalizeIngredient(target);
-  return normalizedList.some(item =>
+  return (normalizedList || []).some(item =>
     item === normalizedTarget || item.includes(normalizedTarget) || normalizedTarget.includes(item)
   );
 }
 
-// 基本材料（常に持っているとみなす）
-const BASE_ALWAYS_HAVE = [
-  "強力粉", "イースト", "ドライイースト", "塩", "水", "砂糖",
-];
-
-// 代替不可の材料
+const BASE_ALWAYS_HAVE = ["強力粉", "イースト", "ドライイースト", "塩", "水", "砂糖"];
 const NO_SUBSTITUTE = new Set(["卵", "バター"]);
 
-// ─────────────────────────────────────
-// メイン：マッチングスコアを計算
-// ─────────────────────────────────────
 export function matchRecipes(userIngredients, profiles) {
-  // 基本材料を自動追加してからマッチング
-  const normalized = normalizeUserIngredients([
-    ...userIngredients,
-    ...BASE_ALWAYS_HAVE,
-  ]);
+  const normalized = normalizeUserIngredients([...(userIngredients || []), ...BASE_ALWAYS_HAVE]);
+  if (!Array.isArray(profiles)) return [];
 
   return profiles.map(profile => {
     let score = 0;
@@ -69,13 +56,11 @@ export function matchRecipes(userIngredients, profiles) {
     const optional = profile.optional_ingredients || [];
     const subs = profile.substitutes || {};
 
-    // ① 必須材料チェック（スコア3点）
     for (const req of required) {
       if (hasIngredient(normalized, req)) {
         score += 3;
         matched.push(req);
       } else if (NO_SUBSTITUTE.has(req)) {
-        // 代替不可材料が足りない場合は大きくマイナス
         missing.push(req);
         score -= 5;
       } else if (subs[req]) {
@@ -93,7 +78,6 @@ export function matchRecipes(userIngredients, profiles) {
       }
     }
 
-    // ② 任意材料チェック（スコア1点）
     for (const opt of optional) {
       if (hasIngredient(normalized, opt)) {
         score += 1;
@@ -101,47 +85,27 @@ export function matchRecipes(userIngredients, profiles) {
       }
     }
 
-    // ③ 分類を決定
     const hasNoSubstituteMissing = missing.some(m => NO_SUBSTITUTE.has(m));
     let category;
-    if (hasNoSubstituteMissing || missing.length > 2) {
-      category = "lacking";
-    } else if (missing.length === 0) {
-      category = "perfect";
-    } else {
-      category = "almost";
-    }
+    if (hasNoSubstituteMissing || missing.length > 2) category = "lacking";
+    else if (missing.length === 0) category = "perfect";
+    else category = "almost";
 
-    return {
-      profile,
-      score,
-      missing,
-      substituted,
-      matched,
-      category,
-    };
-  })
-  .sort((a, b) => {
+    return { profile, score, missing, substituted, matched, category };
+  }).sort((a, b) => {
     const catOrder = { perfect: 0, almost: 1, lacking: 2 };
-    if (catOrder[a.category] !== catOrder[b.category]) {
-      return catOrder[a.category] - catOrder[b.category];
-    }
+    if (catOrder[a.category] !== catOrder[b.category]) return catOrder[a.category] - catOrder[b.category];
     return b.score - a.score;
   });
 }
 
-// ─────────────────────────────────────
-// 具材を抽出
-// ─────────────────────────────────────
 const BASE_INGREDIENTS = new Set([
-  "強力粉", "薄力粉", "全粒粉", "水", "牛乳", "豆乳",
-  "バター", "マーガリン", "油", "オリーブオイル", "サラダ油",
-  "砂糖", "塩", "イースト", "ドライイースト", "卵",
-  "はちみつ", "蜂蜜", "メープル", "グラニュー糖", "上白糖",
+  "強力粉", "薄力粉", "全粒粉", "水", "牛乳", "豆乳", "バター", "マーガリン", "油", "オリーブオイル", "サラダ油",
+  "砂糖", "塩", "イースト", "ドライイースト", "卵", "はちみつ", "蜂蜜", "メープル", "グラニュー糖", "上白糖",
 ]);
 
 export function extractFillings(userIngredients) {
-  return userIngredients.filter(ing => {
+  return (userIngredients || []).filter(ing => {
     const normalized = normalizeIngredient(ing);
     return !BASE_INGREDIENTS.has(normalized) &&
            !Array.from(BASE_INGREDIENTS).some(base => ing.includes(base));
@@ -149,25 +113,16 @@ export function extractFillings(userIngredients) {
 }
 
 export function getSubstituteNote(substituted) {
-  if (substituted.length === 0) return null;
+  if (!Array.isArray(substituted) || substituted.length === 0) return null;
   return substituted.map(s => `${s.original}の代わりに${s.substitute}を使用`).join("・");
 }
 
 export function matchVariations(userIngredients, variations, matchedProfiles) {
-  const normalized = normalizeUserIngredients([
-    ...userIngredients,
-    ...BASE_ALWAYS_HAVE,
-  ]);
-
-  const availableDoughTypes = new Set(
-    matchedProfiles
-      .filter(m => m.category === "perfect" || m.category === "almost")
-      .map(m => m.profile.dough_type)
-      .filter(Boolean)
-  );
+  const normalized = normalizeUserIngredients([...(userIngredients || []), ...BASE_ALWAYS_HAVE]);
+  const availableDoughTypes = new Set((matchedProfiles || []).filter(m => m.category !== "lacking").map(m => m.profile.dough_type).filter(Boolean));
 
   const results = [];
-  for (const variation of variations) {
+  for (const variation of (variations || [])) {
     if (!availableDoughTypes.has(variation.base_dough_type)) continue;
     const missingRequired = (variation.requires || []).filter(req => !hasIngredient(normalized, req));
     const matchedOptional = (variation.optional || []).filter(opt => hasIngredient(normalized, opt));
@@ -187,13 +142,9 @@ export function matchVariations(userIngredients, variations, matchedProfiles) {
   });
 }
 
-// ─────────────────────────────────────
-// コンポーネントのマッチング
-// ─────────────────────────────────────
 export function matchComponents(userIngredients, components) {
-  const normalized = normalizeUserIngredients([...userIngredients, ...BASE_ALWAYS_HAVE]);
-
-  return components.map(comp => {
+  const normalized = normalizeUserIngredients([...(userIngredients || []), ...BASE_ALWAYS_HAVE]);
+  return (components || []).map(comp => {
     const required = comp.required_ingredients || [];
     const missing = required.filter(req => !hasIngredient(normalized, req));
     let category;
@@ -204,45 +155,38 @@ export function matchComponents(userIngredients, components) {
   });
 }
 
-// ─────────────────────────────────────
-// パンのマッチング
-// ─────────────────────────────────────
-export function matchBreads(matchedProfiles, matchedComponents, breads) {
+export function matchBreads(matchedProfiles, matchedComponents, breads, userIngredients = []) {
   const results = [];
+  if (!Array.isArray(breads)) return [];
+
   for (const bread of breads) {
-    const doughProfile = matchedProfiles.find(m => 
-      m.profile.dough_type?.trim().toLowerCase() === bread.dough_type?.trim().toLowerCase()
+    if (!bread) continue;
+    const doughProfile = (matchedProfiles || []).find(m => 
+      m.profile?.dough_type?.trim().toLowerCase() === bread.dough_type?.trim().toLowerCase()
     );
     if (!doughProfile) continue;
 
-    const requiredComponentIds = bread.component_ids || [];
-    const breadComponents = requiredComponentIds.map(id => 
-      matchedComponents.find(mc => mc.component.id === id)
-    ).filter(Boolean);
+    const requiredIds = Array.isArray(bread.component_ids) ? bread.component_ids : [];
+    const breadComponents = requiredIds.map(id => (matchedComponents || []).find(mc => mc.component?.id === id)).filter(Boolean);
 
     let category;
-    const anyComponentLacking = breadComponents.some(c => c.category === "lacking");
-    const anyComponentAlmost = breadComponents.some(c => c.category === "almost");
+    const anyLacking = breadComponents.some(c => c.category === "lacking");
+    const anyAlmost = breadComponents.some(c => c.category === "almost");
 
-    if (doughProfile.category === "lacking" || anyComponentLacking) category = "lacking";
-    else if (doughProfile.category === "almost" || anyComponentAlmost) category = "almost";
+    if (doughProfile.category === "lacking" || anyLacking) category = "lacking";
+    else if (doughProfile.category === "almost" || anyAlmost) category = "almost";
     else category = "perfect";
 
-    // 入力材料（基本材料以外）がどれだけ活用されているかをボーナススコアに
     const fillings = extractFillings(userIngredients);
-    const usedFillingsCount = fillings.filter(f => 
+    const bonus = fillings.filter(f => 
       (bread.name?.includes(f) || bread.description?.includes(f)) ||
-      breadComponents.some(bc => bc.name?.includes(f) || bc.description?.includes(f))
+      breadComponents.some(bc => bc.component?.name?.includes(f) || bc.component?.description?.includes(f))
     ).length;
 
     results.push({
-      bread,
-      doughProfile: doughProfile.profile,
-      components: breadComponents.map(c => c.component),
-      category,
-      missing: Array.from(new Set([...doughProfile.missing, ...breadComponents.flatMap(c => c.missing)])),
-      isBread: true,
-      score: (doughProfile.score || 0) + (usedFillingsCount * 2) // 具材活用ボーナス
+      bread, doughProfile: doughProfile.profile, components: breadComponents.map(c => c.component),
+      category, missing: Array.from(new Set([...(doughProfile.missing || []), ...breadComponents.flatMap(c => c.missing || [])])),
+      isBread: true, score: (doughProfile.score || 0) + (bonus * 2)
     });
   }
 
