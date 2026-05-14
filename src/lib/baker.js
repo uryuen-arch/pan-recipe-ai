@@ -68,6 +68,18 @@ const FERMENTATION_CONFIG = {
 };
 
 // ─────────────────────────────────────
+// 具材混ぜ込み（練り込み）時の自動調整用データ
+// ─────────────────────────────────────
+export const PASTE_ADJUSTMENTS = {
+  "バナナ":    { liquidFactor: 0.3, sugarFactor: 0.3 },
+  "かぼちゃ":  { liquidFactor: 0.2, sugarFactor: 0.1 },
+  "さつまいも": { liquidFactor: 0.0, sugarFactor: 0.2 },
+  "ほうれん草": { liquidFactor: 0.3, sugarFactor: 0.0 },
+  "にんじん":  { liquidFactor: 0.1, sugarFactor: 0.0 },
+  "トマト":    { liquidFactor: 0.4, sugarFactor: 0.0 },
+};
+
+// ─────────────────────────────────────
 // メイン：配合を計算して返す（DB版）
 // ─────────────────────────────────────
 export function calcRecipe({

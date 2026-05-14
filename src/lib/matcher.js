@@ -224,3 +224,85 @@ export function matchVariations(userIngredients, variations, matchedProfiles) {
     return b.matchedOptional.length - a.matchedOptional.length;
   });
 }
+
+// ─────────────────────────────────────
+// コンポーネント（パーツ）のマッチング
+// ─────────────────────────────────────
+export function matchComponents(userIngredients, components) {
+  const normalized = normalizeUserIngredients(userIngredients);
+
+  return components.map(comp => {
+    const required = comp.required_ingredients || [];
+    const missing = required.filter(req => !hasIngredient(normalized, req));
+
+    let category;
+    if (missing.length === 0) {
+      category = "perfect";
+    } else if (missing.length === 1) {
+      category = "almost";
+    } else {
+      category = "lacking";
+    }
+
+    return {
+      component: comp,
+      category,
+      missing,
+    };
+  });
+}
+
+// ─────────────────────────────────────
+// パン（完成品）のマッチング：生地 + コンポーネント
+// ─────────────────────────────────────
+export function matchBreads(matchedProfiles, matchedComponents, breads) {
+  const results = [];
+
+  for (const bread of breads) {
+    // 1. 生地（Dough）のチェック
+    const doughProfile = matchedProfiles.find(m => m.profile.dough_type === bread.dough_type);
+    if (!doughProfile || doughProfile.category === "lacking") continue;
+
+    // 2. 必要なコンポーネント（Components）のチェック
+    const requiredComponentIds = bread.component_ids || [];
+    const breadComponents = requiredComponentIds.map(id => 
+      matchedComponents.find(mc => mc.component.id === id)
+    ).filter(Boolean);
+
+    // 必要なコンポーネント数と一致するか（DB不整合対策）
+    if (breadComponents.length !== requiredComponentIds.length) continue;
+
+    // 全てのコンポーネントが揃っているか確認
+    const allComponentsPerfect = breadComponents.length > 0 && breadComponents.every(c => c.category === "perfect");
+    const anyComponentLacking = breadComponents.some(c => c.category === "lacking");
+
+    if (anyComponentLacking) continue;
+
+    let category;
+    if (doughProfile.category === "perfect" && allComponentsPerfect) {
+      category = "perfect";
+    } else {
+      category = "almost";
+    }
+
+    // 欠落している材料を収集
+    const missing = [
+      ...doughProfile.missing,
+      ...breadComponents.flatMap(c => c.missing)
+    ];
+
+    results.push({
+      bread,
+      doughProfile: doughProfile.profile,
+      components: breadComponents.map(c => c.component),
+      category,
+      missing: Array.from(new Set(missing)), // 重複削除
+      isBread: true,
+    });
+  }
+
+  return results.sort((a, b) => {
+    const catOrder = { perfect: 0, almost: 1 };
+    return catOrder[a.category] - catOrder[b.category];
+  });
+}
