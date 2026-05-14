@@ -7,7 +7,7 @@ import RecipeDetail from "../components/RecipeDetail";
 import HamburgerMenu from "../components/HamburgerMenu";
 import FavoriteList from "../components/FavoriteList";
 
-const DAILY_LIMIT = 3;
+const DAILY_LIMIT = 100; // デバッグのため一時的に引き上げ（元は3）
 const STORAGE_KEY = "pan_recipe_usage";
 
 function getTodayUsage() {
