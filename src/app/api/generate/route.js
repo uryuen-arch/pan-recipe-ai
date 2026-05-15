@@ -152,19 +152,27 @@ export async function POST(request) {
       const isBread = item.type === "bread";
       const isVariation = item.type === "variation";
       const profile = isBread ? item.doughProfile : (isVariation ? item.baseProfile : item.profile);
-      const texture = profile?.texture || "ふんわり";
-      const stepsType = isBread ? item.bread.steps_type : (isVariation ? item.variation.steps_type : profile?.steps_type) || "standard";
+      
       const breadName = isBread ? item.bread.name : (isVariation ? item.variation.variation_name : (profile?.type || "基本のパン"));
+      let texture = profile?.texture || "ふんわり";
+      
+      // 菓子パン類の食感補正（ハード系に誤分類されるのを防ぐ）
+      const sweetBuns = ["あんぱん", "アンパン", "クリームパン", "ジャムパン", "メロンパン", "チョココロネ"];
+      if (sweetBuns.some(b => breadName.includes(b))) {
+        texture = "ふんわり";
+      }
+
+      const stepsType = isBread ? item.bread.steps_type : (isVariation ? item.variation.steps_type : profile?.steps_type) || "standard";
 
       const calc = calcRecipe({ 
         flourGrams, 
-        profile: { ...profile, steps_type: stepsType }, 
+        profile: { ...profile, steps_type: stepsType, texture }, // textureを上書き
         timeCondition, 
         method, 
         userIngredients,
-        breadName // 追加
+        breadName
       });
-      let baseSteps = getStepsTemplate(texture, method, timeCondition, { ...calc, profile: { ...profile, steps_type: stepsType } });
+      let baseSteps = getStepsTemplate(texture, method, timeCondition, { ...calc, profile: { ...profile, steps_type: stepsType, texture } });
 
       if (isBread && item.components && item.components.length > 0) {
         const componentInstructions = item.components.flatMap(c => (c.recipe_steps || []).map(step => `【${c.name}作り】${step}`));
@@ -201,11 +209,12 @@ export async function POST(request) {
 - 対象パンのリストにあるパンの名称と特徴を維持してください。
 - リストにない「ドライフルーツ」や「チョコ」などの主要な具材を勝手に追加しないでください。
 - 入力材料にある具材（例：バナナ）を最大限活用してください。
+- 「あんこ」や「クリーム」などのペースト状の具材は、必ず「成形」時に「生地で包む」ように指定してください（タイミング：成形時に包む）。
 
 JSON出力例：
 {
   "recipes": [
-    {"name":"","catchcopy":"","fillings":[{"name":"具材","ratio":20,"timing":"捏ね","inst":"練り込む"}]},
+    {"name":"","catchcopy":"","fillings":[{"name":"あんこ","ratio":50,"timing":"成形時に包む","inst":"生地で包む"}]},
     {"name":"","catchcopy":"","fillings":[]},
     {"name":"","catchcopy":"","fillings":[]}
   ]
@@ -252,9 +261,18 @@ JSON出力例：
 
       const fillingsData = rawFillings.map(f => {
         const grams = Math.round(flourGrams * (f.ratio || 0) / 100);
-        const name = f.name || "具材";
-        const timing = f.timing || "";
-        const inst = f.inst || "";
+        let name = f.name || "具材";
+        let timing = f.timing || "";
+        let inst = f.inst || "";
+
+        // あんこ・クリーム等のペースト具材の安全処理（捏ね工程で練り込まないように修正）
+        if (name.includes("あん") || name.includes("餡") || name.includes("クリーム") || name.includes("ジャム")) {
+          if (timing === "捏ね" || inst.includes("練り込む") || timing === "成形") {
+            timing = "成形時に包む";
+            inst = "生地で包む";
+          }
+        }
+
         if (timing === "捏ね" || inst.includes("練り込む")) {
           const adj = PASTE_ADJUSTMENTS[name] || Object.entries(PASTE_ADJUSTMENTS).find(([k]) => name.includes(k))?.[1];
           if (adj) {
