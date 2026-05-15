@@ -17,6 +17,38 @@ const NORMALIZE_MAP = {
   "豆乳":         ["豆乳", "無調整豆乳"],
 };
 
+// そのパンのアイデンティティとなる具材ルール
+const IDENTITY_RULES = [
+  {
+    matches: ["パネトーネ", "シュトーレン", "フルーツ", "レーズン"],
+    requires: ["ドライフルーツ", "レーズン", "オレンジピール", "レモンピール", "イチジク", "プルーン", "ベリー"]
+  },
+  {
+    matches: ["チョコ", "ショコラ"],
+    requires: ["チョコ", "ココア"]
+  },
+  {
+    matches: ["くるみ", "カシュー", "アーモンド", "ナッツ"],
+    requires: ["くるみ", "ナッツ", "アーモンド", "ピーナッツ"]
+  },
+  {
+    matches: ["あん", "餡"],
+    requires: ["あんこ", "餡"]
+  },
+  {
+    matches: ["シナモン"],
+    requires: ["シナモン"]
+  },
+  {
+    matches: ["チーズ", "フロマージュ"],
+    requires: ["チーズ", "クリームチーズ"]
+  },
+  {
+    matches: ["ベーコン", "ハム", "ソーセージ", "ウィンナー"],
+    requires: ["ベーコン", "ハム", "ソーセージ", "肉"]
+  }
+];
+
 // ユーザー入力を正規化
 function normalizeIngredient(input) {
   const trimmed = String(input || "").trim();
@@ -39,11 +71,26 @@ function hasIngredient(normalizedList, target) {
   );
 }
 
+// アイデンティティ具材が欠落しているかチェック
+function isIdentityMissing(name, description, normalizedUserIngs, fillings) {
+  const text = (name + (description || "")).toLowerCase();
+  for (const rule of IDENTITY_RULES) {
+    if (rule.matches.some(m => text.includes(m.toLowerCase()))) {
+      const userHasIdentity = rule.requires.some(req => 
+        hasIngredient(normalizedUserIngs, req) || fillings.some(f => f.includes(req))
+      );
+      if (!userHasIdentity) return true;
+    }
+  }
+  return false;
+}
+
 const BASE_ALWAYS_HAVE = ["強力粉", "イースト", "ドライイースト", "塩", "水", "砂糖"];
 const NO_SUBSTITUTE = new Set(["卵", "バター"]);
 
 export function matchRecipes(userIngredients, profiles) {
   const normalized = normalizeUserIngredients([...(userIngredients || []), ...BASE_ALWAYS_HAVE]);
+  const fillings = extractFillings(userIngredients);
   if (!Array.isArray(profiles)) return [];
 
   return profiles.map(profile => {
@@ -86,8 +133,10 @@ export function matchRecipes(userIngredients, profiles) {
     }
 
     const hasNoSubstituteMissing = missing.some(m => NO_SUBSTITUTE.has(m));
+    const identityMissing = isIdentityMissing(profile.type, profile.description, normalized, fillings);
+
     let category;
-    if (hasNoSubstituteMissing || missing.length > 2) category = "lacking";
+    if (identityMissing || hasNoSubstituteMissing || missing.length > 2) category = "lacking";
     else if (missing.length === 0) category = "perfect";
     else category = "almost";
 
@@ -104,38 +153,6 @@ const BASE_INGREDIENTS = new Set([
   "砂糖", "塩", "イースト", "ドライイースト", "卵", "はちみつ", "蜂蜜", "メープル", "グラニュー糖", "上白糖",
 ]);
 
-// そのパンのアイデンティティとなる具材ルール
-const IDENTITY_RULES = [
-  {
-    matches: ["パネトーネ", "シュトーレン", "フルーツ", "レーズン"],
-    requires: ["ドライフルーツ", "レーズン", "オレンジピール", "レモンピール", "イチジク", "プルーン", "ベリー"]
-  },
-  {
-    matches: ["チョコ", "ショコラ"],
-    requires: ["チョコ", "ココア"]
-  },
-  {
-    matches: ["くるみ", "カシュー", "アーモンド", "ナッツ"],
-    requires: ["くるみ", "ナッツ", "アーモンド", "ピーナッツ"]
-  },
-  {
-    matches: ["あん", "餡"],
-    requires: ["あんこ", "餡"]
-  },
-  {
-    matches: ["シナモン"],
-    requires: ["シナモン"]
-  },
-  {
-    matches: ["チーズ", "フロマージュ"],
-    requires: ["チーズ", "クリームチーズ"]
-  },
-  {
-    matches: ["ベーコン", "ハム", "ソーセージ", "ウィンナー"],
-    requires: ["ベーコン", "ハム", "ソーセージ", "肉"]
-  }
-];
-
 export function extractFillings(userIngredients) {
   return (userIngredients || []).filter(ing => {
     const normalized = normalizeIngredient(ing);
@@ -151,6 +168,7 @@ export function getSubstituteNote(substituted) {
 
 export function matchVariations(userIngredients, variations, matchedProfiles) {
   const normalized = normalizeUserIngredients([...(userIngredients || []), ...BASE_ALWAYS_HAVE]);
+  const fillings = extractFillings(userIngredients);
   const availableDoughTypes = new Set((matchedProfiles || []).filter(m => m.category !== "lacking").map(m => m.profile.dough_type).filter(Boolean));
 
   const results = [];
@@ -159,8 +177,11 @@ export function matchVariations(userIngredients, variations, matchedProfiles) {
     const missingRequired = (variation.requires || []).filter(req => !hasIngredient(normalized, req));
     const matchedOptional = (variation.optional || []).filter(opt => hasIngredient(normalized, opt));
 
+    const identityMissing = isIdentityMissing(variation.variation_name, variation.description, normalized, fillings);
+
     let category;
-    if (missingRequired.length === 0) category = "perfect";
+    if (identityMissing) category = "lacking";
+    else if (missingRequired.length === 0) category = "perfect";
     else if (missingRequired.length <= 1) category = "almost";
     else category = "lacking";
 
@@ -205,21 +226,7 @@ export function matchBreads(matchedProfiles, matchedComponents, breads, userIngr
     const breadComponents = requiredIds.map(id => (matchedComponents || []).find(mc => mc.component?.id === id)).filter(Boolean);
 
     // アイデンティティ具材のチェック
-    let identityMissing = false;
-    const breadText = (bread.name + (bread.description || "")).toLowerCase();
-    
-    for (const rule of IDENTITY_RULES) {
-      if (rule.matches.some(m => breadText.includes(m.toLowerCase()))) {
-        // ルールに合致する材料をユーザーが持っているか
-        const userHasIdentity = rule.requires.some(req => 
-          hasIngredient(normalizedUserIngs, req) || fillings.some(f => f.includes(req))
-        );
-        if (!userHasIdentity) {
-          identityMissing = true;
-          break;
-        }
-      }
-    }
+    const identityMissing = isIdentityMissing(bread.name, bread.description, normalizedUserIngs, fillings);
 
     let category;
     const anyLacking = breadComponents.some(c => c.category === "lacking");
