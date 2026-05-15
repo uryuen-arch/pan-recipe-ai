@@ -1,0 +1,85 @@
+[
+  {
+    "json_agg": [
+      {
+        "id": "cf57851d-11b3-49fd-8010-74a8882d3cfa",
+        "name": "メロンパン",
+        "dough_type": "rich",
+        "texture": "ふんわり",
+        "difficulty": "簡単",
+        "description": "菓子パン生地にメロン皮を被せた定番パン",
+        "component_ids": [
+          "1f674fd0-9a1a-4ec7-9452-0fc78677e71f"
+        ],
+        "steps_type": "standard",
+        "created_at": "2026-05-14T00:02:40.022595+00:00"
+      },
+      {
+        "id": "6e7a03ab-47c7-4404-b87c-3d3fc1b6aa49",
+        "name": "クリームパン",
+        "dough_type": "rich",
+        "texture": "ふんわり",
+        "difficulty": "簡単",
+        "description": "菓子パン生地にカスタードクリームを包んだ定番パン",
+        "component_ids": [
+          "0d8f3c5c-5460-4c7a-9a41-929db057048f"
+        ],
+        "steps_type": "standard",
+        "created_at": "2026-05-14T00:02:40.022595+00:00"
+      },
+      {
+        "id": "35c7d4a2-b6ad-40c6-991f-53d37e3e8787",
+        "name": "あんぱん",
+        "dough_type": "simple",
+        "texture": "ふんわり",
+        "difficulty": "超簡単",
+        "description": "甘い生地にあんこを包んだ日本の定番パン",
+        "component_ids": [
+          "b4b889bb-1b62-438b-9fc8-49e490264f6b"
+        ],
+        "steps_type": "standard",
+        "created_at": "2026-05-14T00:02:40.022595+00:00"
+      },
+      {
+        "id": "8349f9a7-e7fe-49e9-a43e-b6307e494d3b",
+        "name": "チョコクリームパン",
+        "dough_type": "rich",
+        "texture": "しっとり",
+        "difficulty": "簡単",
+        "description": "菓子パン生地にチョコクリームを包んだ贅沢なパン",
+        "component_ids": [
+          "f533bcd1-047c-4426-b51a-a524b4816299"
+        ],
+        "steps_type": "standard",
+        "created_at": "2026-05-14T00:02:40.022595+00:00"
+      },
+      {
+        "id": "ba2f0c7e-8e08-4080-97ee-2d613a1c3e89",
+        "name": "パン・オ・ショコラ",
+        "dough_type": "croissant",
+        "texture": "しっとり",
+        "difficulty": "本格",
+        "description": "クロワッサン生地にチョコを包んだフランスの定番",
+        "component_ids": [
+          "f533bcd1-047c-4426-b51a-a524b4816299",
+          "e494565a-b49e-4e52-9979-e59de63cb3e9"
+        ],
+        "steps_type": "croissant",
+        "created_at": "2026-05-14T00:02:40.022595+00:00"
+      },
+      {
+        "id": "42b986b5-c920-46de-8447-26f63b0dd633",
+        "name": "ジャムパン",
+        "dough_type": "simple",
+        "texture": "ふんわり",
+        "difficulty": "超簡単",
+        "description": "シンプルな生地にジャムを包んだやさしいパン",
+        "component_ids": [
+          "afdef297-ed1c-45ae-bc46-6930630f88c7"
+        ],
+        "steps_type": "standard",
+        "created_at": "2026-05-14T00:02:40.022595+00:00"
+      }
+    ]
+  }
+]

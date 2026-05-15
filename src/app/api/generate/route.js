@@ -157,7 +157,7 @@ export async function POST(request) {
       let texture = profile?.texture || "ふんわり";
       
       // 菓子パン類の食感補正（ハード系に誤分類されるのを防ぐ）
-      const sweetBuns = ["あんぱん", "アンパン", "クリームパン", "ジャムパン", "メロンパン", "チョココロネ"];
+      const sweetBuns = ["あんぱん", "アンパン", "クリームパン", "ジャムパン", "メロンパン", "チョココロネ", "チョコクリームパン", "パン・オ・ショコラ"];
       if (sweetBuns.some(b => breadName.includes(b))) {
         texture = "ふんわり";
       }
@@ -194,7 +194,8 @@ export async function POST(request) {
     const profileSummary = recipeConfigs.map((config, i) => {
       const name = config.breadName || (config.profile?.type || "基本のパン");
       const status = config.category === "perfect" ? "今すぐ作れる" : `${(config.missing || []).join("・")}が必要`;
-      return `${i + 1}. ${name}（${config.texture}・${status}）`;
+      const note = config.isVariation && config.item.variation.steps_note ? `（注記：${config.item.variation.steps_note}）` : "";
+      return `${i + 1}. ${name}（${config.texture}・${status}）${note}`;
     }).join("\n");
 
     console.log("AI Summary Input:\n", profileSummary);
@@ -206,9 +207,9 @@ export async function POST(request) {
 対象パン：\n${profileSummary}
 
 制約事項：
-- 対象パンのリストにあるパンの名称と特徴を維持してください。
+- 対象パンのリストにあるパンの名称と特徴、および（注記）にある工程指示を必ずレシピに反映してください。
 - リストにない「ドライフルーツ」や「チョコ」などの主要な具材を勝手に追加しないでください。
-- 入力材料にある具材（例：バナナ）を最大限活用してください。
+- 入力材料にある具材（例：バナナ、にんにく）を最大限活用してください。
 - 「あんこ」や「クリーム」などのペースト状の具材は、必ず「成形」時に「生地で包む」ように指定してください（タイミング：成形時に包む）。
 
 JSON出力例：
@@ -298,13 +299,28 @@ JSON出力例：
           if (l === "成形" && (t.includes("成形") || t.includes("巻き") || t.includes("包む") || t.includes("のせ"))) return true;
           if (l.includes("焼成") && (t.includes("焼成") || t.includes("揚げる"))) return true;
           if (l === "仕上げ" && (t.includes("仕上げ") || t.includes("かけ") || t.includes("まぶす"))) return true;
+          // UI component expected timing strings
+          if (t === "成形時に包む" && l === "成形") return true;
+          if (t === "成形時にのせる" && l === "成形") return true;
+          if (t === "焼成前にかける" && l.includes("焼成")) return true;
           return false;
         });
+
+        let desc = step.desc;
         if (matchingFillings.length > 0) {
           const instructions = matchingFillings.map(f => `【${f.name}】${f.step_instruction}`).join(" ");
-          return { ...step, desc: `${step.desc} ${instructions}` };
+          desc += " " + instructions;
         }
-        return step;
+
+        // バリエーション固有の工程（steps_note）を最終ステップにも強制反映
+        if (config.isVariation && config.item.variation.steps_note) {
+          const note = config.item.variation.steps_note;
+          if ((step.label === "成形" || step.label.includes("焼成")) && !desc.includes(note)) {
+            desc += ` （${note}）`;
+          }
+        }
+
+        return { ...step, desc };
       });
 
       return {
