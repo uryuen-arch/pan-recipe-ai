@@ -94,6 +94,22 @@ export async function POST(request) {
       seenDoughTypes.add(doughType);
     }
 
+    // 選択されたものが入力具材（例：バナナ）を一つも使っていない場合、
+    // もし候補の中に具材を使うものがあれば、入れ替えを検討する（多様性と納得感のため）
+    const userFillings = extractFillings(userIngredients);
+    if (userFillings.length > 0 && !finalSelection.some(s => {
+      const text = (s.bread?.name || s.variation?.variation_name || s.profile?.type || "") + (s.bread?.description || s.variation?.description || "");
+      return userFillings.some(f => text.includes(f));
+    })) {
+      const bestFillingCandidate = allCandidates.find(c => {
+        const text = (c.bread?.name || c.variation?.variation_name || c.profile?.type || "") + (c.bread?.description || c.variation?.description || "");
+        return userFillings.some(f => text.includes(f)) && !seenNames.has(c.bread?.name || c.variation?.variation_name || c.profile?.type);
+      });
+      if (bestFillingCandidate && finalSelection.length > 0) {
+        finalSelection[finalSelection.length - 1] = bestFillingCandidate;
+      }
+    }
+
     if (finalSelection.length < 3) {
       FALLBACK_PROFILES.forEach(p => {
         if (finalSelection.length < 3 && !finalSelection.some(f => (f.profile?.id === p.id || f.doughProfile?.id === p.id))) {
@@ -146,6 +162,11 @@ export async function POST(request) {
 入力材料：${ingredients}
 条件：${timeCondition}, ${method}, ${difficulty}
 対象パン：\n${profileSummary}
+
+制約事項：
+- 対象パンのリストにあるパンの名称と特徴を維持してください。
+- リストにない「ドライフルーツ」や「チョコ」などの主要な具材を勝手に追加しないでください。
+- 入力材料にある具材（例：バナナ）を最大限活用してください。
 
 JSON出力例：
 {

@@ -159,6 +159,9 @@ export function matchBreads(matchedProfiles, matchedComponents, breads, userIngr
   const results = [];
   if (!Array.isArray(breads)) return [];
 
+  const normalizedUserIngs = normalizeUserIngredients(userIngredients);
+  const fillings = extractFillings(userIngredients);
+
   for (const bread of breads) {
     if (!bread) continue;
     const doughProfile = (matchedProfiles || []).find(m => 
@@ -169,27 +172,44 @@ export function matchBreads(matchedProfiles, matchedComponents, breads, userIngr
     const requiredIds = Array.isArray(bread.component_ids) ? bread.component_ids : [];
     const breadComponents = requiredIds.map(id => (matchedComponents || []).find(mc => mc.component?.id === id)).filter(Boolean);
 
+    // アイデンティティ具材のチェック
+    let identityMissing = false;
+    const breadText = (bread.name + (bread.description || "")).toLowerCase();
+    
+    for (const [key, aliases] of Object.entries(IDENTITY_KEYWORDS)) {
+      const hasKeyword = aliases.some(alias => breadText.includes(alias));
+      if (hasKeyword) {
+        // キーワードに合致する材料をユーザーが持っているか
+        const userHasIdentity = aliases.some(alias => hasIngredient(normalizedUserIngs, alias)) ||
+                               fillings.some(f => aliases.some(alias => f.includes(alias)));
+        if (!userHasIdentity) {
+          identityMissing = true;
+          break;
+        }
+      }
+    }
+
     let category;
     const anyLacking = breadComponents.some(c => c.category === "lacking");
     const anyAlmost = breadComponents.some(c => c.category === "almost");
 
-    if (doughProfile.category === "lacking" || anyLacking) category = "lacking";
+    // アイデンティティ具材がない場合は強制的にlackingにする
+    if (identityMissing || doughProfile.category === "lacking" || anyLacking) category = "lacking";
     else if (doughProfile.category === "almost" || anyAlmost) category = "almost";
     else category = "perfect";
 
-    const fillings = extractFillings(userIngredients);
     const bonus = fillings.filter(f => 
       (bread.name?.includes(f) || bread.description?.includes(f)) ||
       breadComponents.some(bc => bc.component?.name?.includes(f) || bc.component?.description?.includes(f))
     ).length;
 
     // 生地タイプ（強力粉・薄力粉など）のマッチングボーナス
-    const doughMatchBonus = hasIngredient(normalizeUserIngredients(userIngredients), doughProfile.profile?.type) ? 2 : 0;
+    const doughMatchBonus = hasIngredient(normalizedUserIngs, doughProfile.profile?.type) ? 2 : 0;
 
     results.push({
       bread, doughProfile: doughProfile.profile, components: breadComponents.map(c => c.component),
       category, missing: Array.from(new Set([...(doughProfile.missing || []), ...breadComponents.flatMap(c => c.missing || [])])),
-      isBread: true, score: (doughProfile.score || 0) + (bonus * 5) + doughMatchBonus
+      isBread: true, score: (doughProfile.score || 0) + (bonus * 10) + doughMatchBonus
     });
   }
 
@@ -197,5 +217,8 @@ export function matchBreads(matchedProfiles, matchedComponents, breads, userIngr
     const catOrder = { perfect: 0, almost: 1, lacking: 2 };
     if (catOrder[a.category] !== catOrder[b.category]) return catOrder[a.category] - catOrder[b.category];
     return b.score - a.score;
+  });
+}
+- a.score;
   });
 }
