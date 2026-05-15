@@ -216,12 +216,16 @@ export function matchComponents(userIngredients, components) {
   const normalized = normalizeUserIngredients([...(userIngredients || []), ...BASE_ALWAYS_HAVE]);
   return (components || []).map(comp => {
     const required = comp.required_ingredients || [];
+    
+    // コンポーネント名そのものを持っているか、または原材料をすべて持っているかチェック
+    const hasComponentItself = hasIngredient(normalized, comp.name);
     const missing = required.filter(req => !hasIngredient(normalized, req));
+
     let category;
-    if (missing.length === 0) category = "perfect";
+    if (hasComponentItself || missing.length === 0) category = "perfect";
     else if (missing.length === 1) category = "almost";
     else category = "lacking";
-    return { component: comp, category, missing };
+    return { component: comp, category, missing: hasComponentItself ? [] : missing };
   });
 }
 
