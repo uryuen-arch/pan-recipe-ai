@@ -183,10 +183,13 @@ export function matchBreads(matchedProfiles, matchedComponents, breads, userIngr
       breadComponents.some(bc => bc.component?.name?.includes(f) || bc.component?.description?.includes(f))
     ).length;
 
+    // 生地タイプ（強力粉・薄力粉など）のマッチングボーナス
+    const doughMatchBonus = hasIngredient(normalizeUserIngredients(userIngredients), doughProfile.profile?.type) ? 2 : 0;
+
     results.push({
       bread, doughProfile: doughProfile.profile, components: breadComponents.map(c => c.component),
       category, missing: Array.from(new Set([...(doughProfile.missing || []), ...breadComponents.flatMap(c => c.missing || [])])),
-      isBread: true, score: (doughProfile.score || 0) + (bonus * 2)
+      isBread: true, score: (doughProfile.score || 0) + (bonus * 5) + doughMatchBonus
     });
   }
 

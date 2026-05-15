@@ -37,33 +37,63 @@ export async function POST(request) {
     const userIngredients = ingredients.split(/[,、\n]/).map(s => s.trim()).filter(Boolean);
 
     // 1. 各種マスタデータの取得
-    const [profilesRes, componentsRes, breadsRes] = await Promise.all([
+    const [profilesRes, componentsRes, breadsRes, variationsRes] = await Promise.all([
       supabase.from("bread_profiles").select("*"),
       supabase.from("components").select("*"),
-      supabase.from("breads").select("*")
+      supabase.from("breads").select("*"),
+      supabase.from("variations").select("*")
     ]);
 
     let profiles = (profilesRes.data && profilesRes.data.length > 0) ? profilesRes.data : FALLBACK_PROFILES;
     let components = componentsRes.data || [];
     let breads = breadsRes.data || [];
-    console.log(`DB Fetched: profiles=${profiles.length}, components=${components.length}, breads=${breads.length}`);
+    let variations = variationsRes.data || [];
+    console.log(`DB Fetched: profiles=${profiles.length}, components=${components.length}, breads=${breads.length}, variations=${variations.length}`);
 
     // 2. マッチングエンジンの実行
     const matchedProfiles = matchRecipes(userIngredients, profiles);
     const matchedComponents = matchComponents(userIngredients, components);
     const matchedBreadsList = matchBreads(matchedProfiles, matchedComponents, breads, userIngredients);
-    console.log(`Engine Matched: breads=${matchedBreadsList.length}, profiles=${matchedProfiles.length}`);
+    const matchedVariations = matchVariations(userIngredients, variations, matchedProfiles);
+    console.log(`Engine Matched: breads=${matchedBreadsList.length}, profiles=${matchedProfiles.length}, variations=${matchedVariations.length}`);
 
-    // 3. 提案候補の選択
-    let finalSelection = matchedBreadsList.slice(0, 3).map(b => ({ ...b, type: "bread" }));
-    if (finalSelection.length < 3) {
-      const remainingCount = 3 - finalSelection.length;
-      const baseOptions = matchedProfiles
-        .filter(p => !finalSelection.some(f => f.type === "bread" && f.doughProfile.id === p.profile.id))
-        .slice(0, remainingCount)
-        .map(p => ({ ...p, type: "base" }));
-      finalSelection = [...finalSelection, ...baseOptions];
+    // 3. 提案候補の選択（カテゴリ優先・フラットに統合）
+    // すべての候補を統合
+    const allCandidates = [
+      ...matchedBreadsList.map(b => ({ ...b, type: "bread", sortPriority: 1 })),
+      ...matchedVariations.map(v => ({ ...v, type: "variation", sortPriority: 2 })),
+      ...matchedProfiles.filter(p => p.category !== 'lacking').map(p => ({ ...p, type: "base", sortPriority: 3 }))
+    ];
+
+    // カテゴリ（perfect > almost）を最優先にし、その中で型優先度とスコアでソート
+    allCandidates.sort((a, b) => {
+      const catOrder = { perfect: 0, almost: 1, lacking: 2 };
+      if (catOrder[a.category] !== catOrder[b.category]) return catOrder[a.category] - catOrder[b.category];
+      if (a.sortPriority !== b.sortPriority) return a.sortPriority - b.sortPriority;
+      return (b.score || 0) - (a.score || 0);
+    });
+
+    // 重複を排除しつつ上位3つを選択
+    const finalSelection = [];
+    const seenDoughTypes = new Set();
+    const seenNames = new Set();
+
+    for (const item of allCandidates) {
+      if (finalSelection.length >= 3) break;
+      const name = item.type === "bread" ? item.bread.name : (item.type === "variation" ? item.variation.variation_name : item.profile.type);
+      const doughType = item.type === "bread" ? item.bread.dough_type : (item.type === "variation" ? item.variation.base_dough_type : item.profile.dough_type);
+      
+      // 同じ名前や同じ生地タイプの重複を避ける（バリエーション豊かにするため）
+      if (seenNames.has(name)) continue;
+      // perfectが複数ある場合は、生地タイプが被っても出す（作りやすさ優先）
+      // ただし全く同じものは避ける
+      if (item.category !== 'perfect' && seenDoughTypes.has(doughType)) continue;
+
+      finalSelection.push(item);
+      seenNames.add(name);
+      seenDoughTypes.add(doughType);
     }
+
     if (finalSelection.length < 3) {
       FALLBACK_PROFILES.forEach(p => {
         if (finalSelection.length < 3 && !finalSelection.some(f => (f.profile?.id === p.id || f.doughProfile?.id === p.id))) {
@@ -78,9 +108,10 @@ export async function POST(request) {
     const recipeConfigs = finalSelection.map((item, i) => {
       const flourGrams = FLOUR_AMOUNTS[i] || 300;
       const isBread = item.type === "bread";
-      const profile = isBread ? item.doughProfile : item.profile;
+      const isVariation = item.type === "variation";
+      const profile = isBread ? item.doughProfile : (isVariation ? item.baseProfile : item.profile);
       const texture = profile?.texture || "ふんわり";
-      const stepsType = isBread ? item.bread.steps_type : profile?.steps_type || "standard";
+      const stepsType = isBread ? item.bread.steps_type : (isVariation ? item.variation.steps_type : profile?.steps_type) || "standard";
 
       const calc = calcRecipe({ flourGrams, profile: { ...profile, steps_type: stepsType }, timeCondition, method, userIngredients });
       let baseSteps = getStepsTemplate(texture, method, timeCondition, { ...calc, profile: { ...profile, steps_type: stepsType } });
@@ -89,17 +120,21 @@ export async function POST(request) {
         const componentInstructions = item.components.flatMap(c => (c.recipe_steps || []).map(step => `【${c.name}作り】${step}`));
         const prepStep = baseSteps.find(s => s.label === "下準備");
         if (prepStep) prepStep.desc += " " + componentInstructions.join(" ");
+      } else if (isVariation && item.variation.steps_note) {
+        const prepStep = baseSteps.find(s => s.label === "下準備" || s.label === "成形");
+        if (prepStep) prepStep.desc += " " + item.variation.steps_note;
       }
 
       return {
-        item, isBread, profile, calc, steps: baseSteps, flourGrams, texture,
+        item, isBread, isVariation, profile, calc, steps: baseSteps, flourGrams, texture,
         category: item.category || 'almost', missing: item.missing || [],
-        breadName: isBread ? item.bread.name : null, breadDesc: isBread ? item.bread.description : null,
+        breadName: isBread ? item.bread.name : (isVariation ? item.variation.variation_name : null),
+        breadDesc: isBread ? item.bread.description : (isVariation ? item.variation.description : null),
       };
     });
 
     const profileSummary = recipeConfigs.map((config, i) => {
-      const name = config.isBread ? config.breadName : (config.profile?.type || "基本のパン");
+      const name = config.breadName || (config.profile?.type || "基本のパン");
       const status = config.category === "perfect" ? "今すぐ作れる" : `${(config.missing || []).join("・")}が必要`;
       return `${i + 1}. ${name}（${config.texture}・${status}）`;
     }).join("\n");
