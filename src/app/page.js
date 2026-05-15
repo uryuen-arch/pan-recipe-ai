@@ -96,10 +96,11 @@ export default function Home() {
  ダミー */
     //　生成AI使えるようになったら有効化（API使えないときは、ダミーで凌ぐ
     try {
+      const excludeNames = recipes.map(r => r.name);
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients, conditions }),
+        body: JSON.stringify({ ingredients, conditions, excludeNames }),
       });
       const data = await res.json();
       console.log("API Response Data:", data); // デバッグ用

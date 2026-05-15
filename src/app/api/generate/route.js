@@ -24,7 +24,7 @@ export async function POST(request) {
   try {
     console.log("--- Generating Recipe START ---");
     const body = await request.json().catch(() => ({}));
-    const { ingredients, conditions = [] } = body;
+    const { ingredients, conditions = [], excludeNames = [] } = body;
 
     if (!ingredients || typeof ingredients !== "string" || ingredients.trim().length < 2) {
       return Response.json({ error: "材料を入力してください" }, { status: 400 });
@@ -89,7 +89,7 @@ export async function POST(request) {
     // 重複を排除しつつ上位3つを選択
     const finalSelection = [];
     const seenDoughTypes = new Set();
-    const seenNames = new Set();
+    const seenNames = new Set(excludeNames);
 
     for (const item of allCandidates) {
       if (finalSelection.length >= 3) break;
@@ -105,6 +105,19 @@ export async function POST(request) {
       finalSelection.push(item);
       seenNames.add(name);
       seenDoughTypes.add(doughType);
+    }
+
+    // 候補が足りない場合に備えて、除外していたものを再度検討する（フォールバック）
+    if (finalSelection.length < 3 && excludeNames.length > 0) {
+      for (const item of allCandidates) {
+        if (finalSelection.length >= 3) break;
+        const name = item.type === "bread" ? item.bread.name : (item.type === "variation" ? item.variation.variation_name : item.profile.type);
+        if (finalSelection.some(s => {
+          const sName = s.type === "bread" ? s.bread.name : (s.type === "variation" ? s.variation.variation_name : s.profile.type);
+          return sName === name;
+        })) continue;
+        finalSelection.push(item);
+      }
     }
 
     // 選択されたものが入力具材（例：バナナ）を一つも使っていない場合、
