@@ -104,6 +104,18 @@ const BASE_INGREDIENTS = new Set([
   "砂糖", "塩", "イースト", "ドライイースト", "卵", "はちみつ", "蜂蜜", "メープル", "グラニュー糖", "上白糖",
 ]);
 
+// そのパンのアイデンティティとなる具材キーワード
+const IDENTITY_KEYWORDS = {
+  "フルーツ": ["ドライフルーツ", "レーズン", "クランベリー", "オレンジピール", "レモンピール", "イチジク", "プルーン"],
+  "ナッツ": ["くるみ", "カシューナッツ", "アーモンド", "ピスタチオ", "ピーナッツ"],
+  "チョコ": ["チョコ", "ココア", "クーベルチュール"],
+  "チーズ": ["チーズ", "クリームチーズ", "プロセスチーズ", "モッツァレラ"],
+  "肉": ["ベーコン", "ハム", "ソーセージ", "ウィンナー"],
+  "野菜": ["かぼちゃ", "さつまいも", "ほうれん草", "にんじん", "トマト", "玉ねぎ", "コーン"],
+  "和風": ["あんこ", "餡", "黒ごま", "きなこ", "抹茶"],
+  "スパイス": ["シナモン", "カルダモン", "ジンジャー"]
+};
+
 export function extractFillings(userIngredients) {
   return (userIngredients || []).filter(ing => {
     const normalized = normalizeIngredient(ing);
@@ -217,8 +229,5 @@ export function matchBreads(matchedProfiles, matchedComponents, breads, userIngr
     const catOrder = { perfect: 0, almost: 1, lacking: 2 };
     if (catOrder[a.category] !== catOrder[b.category]) return catOrder[a.category] - catOrder[b.category];
     return b.score - a.score;
-  });
-}
-- a.score;
   });
 }
