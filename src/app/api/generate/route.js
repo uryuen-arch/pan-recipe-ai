@@ -58,10 +58,10 @@ export async function POST(request) {
     console.log(`Engine Matched: breads=${matchedBreadsList.length}, profiles=${matchedProfiles.length}, variations=${matchedVariations.length}`);
 
     // 3. 提案候補の選択（カテゴリ優先・フラットに統合）
-    // すべての候補を統合
+    // すべての候補を統合（lackingは除外）
     const allCandidates = [
-      ...matchedBreadsList.map(b => ({ ...b, type: "bread", sortPriority: 1 })),
-      ...matchedVariations.map(v => ({ ...v, type: "variation", sortPriority: 2 })),
+      ...matchedBreadsList.filter(b => b.category !== 'lacking').map(b => ({ ...b, type: "bread", sortPriority: 1 })),
+      ...matchedVariations.filter(v => v.category !== 'lacking').map(v => ({ ...v, type: "variation", sortPriority: 2 })),
       ...matchedProfiles.filter(p => p.category !== 'lacking').map(p => ({ ...p, type: "base", sortPriority: 3 }))
     ];
 

@@ -104,17 +104,37 @@ const BASE_INGREDIENTS = new Set([
   "砂糖", "塩", "イースト", "ドライイースト", "卵", "はちみつ", "蜂蜜", "メープル", "グラニュー糖", "上白糖",
 ]);
 
-// そのパンのアイデンティティとなる具材キーワード
-const IDENTITY_KEYWORDS = {
-  "フルーツ": ["ドライフルーツ", "レーズン", "クランベリー", "オレンジピール", "レモンピール", "イチジク", "プルーン"],
-  "ナッツ": ["くるみ", "カシューナッツ", "アーモンド", "ピスタチオ", "ピーナッツ"],
-  "チョコ": ["チョコ", "ココア", "クーベルチュール"],
-  "チーズ": ["チーズ", "クリームチーズ", "プロセスチーズ", "モッツァレラ"],
-  "肉": ["ベーコン", "ハム", "ソーセージ", "ウィンナー"],
-  "野菜": ["かぼちゃ", "さつまいも", "ほうれん草", "にんじん", "トマト", "玉ねぎ", "コーン"],
-  "和風": ["あんこ", "餡", "黒ごま", "きなこ", "抹茶"],
-  "スパイス": ["シナモン", "カルダモン", "ジンジャー"]
-};
+// そのパンのアイデンティティとなる具材ルール
+const IDENTITY_RULES = [
+  {
+    matches: ["パネトーネ", "シュトーレン", "フルーツ", "レーズン"],
+    requires: ["ドライフルーツ", "レーズン", "オレンジピール", "レモンピール", "イチジク", "プルーン", "ベリー"]
+  },
+  {
+    matches: ["チョコ", "ショコラ"],
+    requires: ["チョコ", "ココア"]
+  },
+  {
+    matches: ["くるみ", "カシュー", "アーモンド", "ナッツ"],
+    requires: ["くるみ", "ナッツ", "アーモンド", "ピーナッツ"]
+  },
+  {
+    matches: ["あん", "餡"],
+    requires: ["あんこ", "餡"]
+  },
+  {
+    matches: ["シナモン"],
+    requires: ["シナモン"]
+  },
+  {
+    matches: ["チーズ", "フロマージュ"],
+    requires: ["チーズ", "クリームチーズ"]
+  },
+  {
+    matches: ["ベーコン", "ハム", "ソーセージ", "ウィンナー"],
+    requires: ["ベーコン", "ハム", "ソーセージ", "肉"]
+  }
+];
 
 export function extractFillings(userIngredients) {
   return (userIngredients || []).filter(ing => {
@@ -188,12 +208,12 @@ export function matchBreads(matchedProfiles, matchedComponents, breads, userIngr
     let identityMissing = false;
     const breadText = (bread.name + (bread.description || "")).toLowerCase();
     
-    for (const [key, aliases] of Object.entries(IDENTITY_KEYWORDS)) {
-      const hasKeyword = aliases.some(alias => breadText.includes(alias));
-      if (hasKeyword) {
-        // キーワードに合致する材料をユーザーが持っているか
-        const userHasIdentity = aliases.some(alias => hasIngredient(normalizedUserIngs, alias)) ||
-                               fillings.some(f => aliases.some(alias => f.includes(alias)));
+    for (const rule of IDENTITY_RULES) {
+      if (rule.matches.some(m => breadText.includes(m.toLowerCase()))) {
+        // ルールに合致する材料をユーザーが持っているか
+        const userHasIdentity = rule.requires.some(req => 
+          hasIngredient(normalizedUserIngs, req) || fillings.some(f => f.includes(req))
+        );
         if (!userHasIdentity) {
           identityMissing = true;
           break;
