@@ -47,11 +47,14 @@ const IDENTITY_RULES = [
     requires: ["チーズ", "クリームチーズ"]
   },
   {
-    matches: ["ベーコン", "ハム", "ソーセージ", "ウィンナー"],
-    requires: ["ベーコン", "ハム", "ソーセージ", "肉"]
+  matches: ["ベーコン", "ハム", "ソーセージ", "ウィンナー"],
+  requires: ["ベーコン", "ハム", "ソーセージ", "肉"]
+  },
+  {
+  matches: ["にんにく", "ガーリック"],
+  requires: ["にんにく", "ガーリック"]
   }
-];
-
+  ];
 // ユーザー入力を正規化
 function normalizeIngredient(input) {
   const trimmed = String(input || "").trim();

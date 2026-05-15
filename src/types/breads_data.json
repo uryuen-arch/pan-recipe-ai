@@ -1,85 +1,250 @@
 [
   {
-    "json_agg": [
-      {
-        "id": "cf57851d-11b3-49fd-8010-74a8882d3cfa",
-        "name": "メロンパン",
-        "dough_type": "rich",
-        "texture": "ふんわり",
-        "difficulty": "簡単",
-        "description": "菓子パン生地にメロン皮を被せた定番パン",
-        "component_ids": [
-          "1f674fd0-9a1a-4ec7-9452-0fc78677e71f"
-        ],
-        "steps_type": "standard",
-        "created_at": "2026-05-14T00:02:40.022595+00:00"
-      },
-      {
-        "id": "6e7a03ab-47c7-4404-b87c-3d3fc1b6aa49",
-        "name": "クリームパン",
-        "dough_type": "rich",
-        "texture": "ふんわり",
-        "difficulty": "簡単",
-        "description": "菓子パン生地にカスタードクリームを包んだ定番パン",
-        "component_ids": [
-          "0d8f3c5c-5460-4c7a-9a41-929db057048f"
-        ],
-        "steps_type": "standard",
-        "created_at": "2026-05-14T00:02:40.022595+00:00"
-      },
-      {
-        "id": "35c7d4a2-b6ad-40c6-991f-53d37e3e8787",
-        "name": "あんぱん",
-        "dough_type": "simple",
-        "texture": "ふんわり",
-        "difficulty": "超簡単",
-        "description": "甘い生地にあんこを包んだ日本の定番パン",
-        "component_ids": [
-          "b4b889bb-1b62-438b-9fc8-49e490264f6b"
-        ],
-        "steps_type": "standard",
-        "created_at": "2026-05-14T00:02:40.022595+00:00"
-      },
-      {
-        "id": "8349f9a7-e7fe-49e9-a43e-b6307e494d3b",
-        "name": "チョコクリームパン",
-        "dough_type": "rich",
-        "texture": "しっとり",
-        "difficulty": "簡単",
-        "description": "菓子パン生地にチョコクリームを包んだ贅沢なパン",
-        "component_ids": [
-          "f533bcd1-047c-4426-b51a-a524b4816299"
-        ],
-        "steps_type": "standard",
-        "created_at": "2026-05-14T00:02:40.022595+00:00"
-      },
-      {
-        "id": "ba2f0c7e-8e08-4080-97ee-2d613a1c3e89",
-        "name": "パン・オ・ショコラ",
-        "dough_type": "croissant",
-        "texture": "しっとり",
-        "difficulty": "本格",
-        "description": "クロワッサン生地にチョコを包んだフランスの定番",
-        "component_ids": [
-          "f533bcd1-047c-4426-b51a-a524b4816299",
-          "e494565a-b49e-4e52-9979-e59de63cb3e9"
-        ],
-        "steps_type": "croissant",
-        "created_at": "2026-05-14T00:02:40.022595+00:00"
-      },
-      {
-        "id": "42b986b5-c920-46de-8447-26f63b0dd633",
-        "name": "ジャムパン",
-        "dough_type": "simple",
-        "texture": "ふんわり",
-        "difficulty": "超簡単",
-        "description": "シンプルな生地にジャムを包んだやさしいパン",
-        "component_ids": [
-          "afdef297-ed1c-45ae-bc46-6930630f88c7"
-        ],
-        "steps_type": "standard",
-        "created_at": "2026-05-14T00:02:40.022595+00:00"
-      }
-    ]
+    "all_data": {
+      "breads": [
+        {
+          "id": "ba2f0c7e-8e08-4080-97ee-2d613a1c3e89",
+          "name": "パン・オ・ショコラ",
+          "dough_type": "croissant",
+          "texture": "しっとり",
+          "difficulty": "本格",
+          "description": "クロワッサン生地にチョコを包んだフランスの定番",
+          "component_ids": [
+            "f533bcd1-047c-4426-b51a-a524b4816299",
+            "e494565a-b49e-4e52-9979-e59de63cb3e9"
+          ],
+          "steps_type": "croissant",
+          "created_at": "2026-05-14T00:02:40.022595+00:00"
+        },
+        {
+          "id": "cf57851d-11b3-49fd-8010-74a8882d3cfa",
+          "name": "メロンパン",
+          "dough_type": "rich",
+          "texture": "ふんわり",
+          "difficulty": "簡単",
+          "description": "菓子パン生地にメロン皮を被せた定番パン",
+          "component_ids": [
+            "1f674fd0-9a1a-4ec7-9452-0fc78677e71f"
+          ],
+          "steps_type": "standard",
+          "created_at": "2026-05-14T00:02:40.022595+00:00"
+        },
+        {
+          "id": "6e7a03ab-47c7-4404-b87c-3d3fc1b6aa49",
+          "name": "クリームパン",
+          "dough_type": "rich",
+          "texture": "ふんわり",
+          "difficulty": "簡単",
+          "description": "菓子パン生地にカスタードクリームを包んだ定番パン",
+          "component_ids": [
+            "0d8f3c5c-5460-4c7a-9a41-929db057048f"
+          ],
+          "steps_type": "standard",
+          "created_at": "2026-05-14T00:02:40.022595+00:00"
+        },
+        {
+          "id": "35c7d4a2-b6ad-40c6-991f-53d37e3e8787",
+          "name": "あんぱん",
+          "dough_type": "simple",
+          "texture": "ふんわり",
+          "difficulty": "超簡単",
+          "description": "甘い生地にあんこを包んだ日本の定番パン",
+          "component_ids": [
+            "b4b889bb-1b62-438b-9fc8-49e490264f6b"
+          ],
+          "steps_type": "standard",
+          "created_at": "2026-05-14T00:02:40.022595+00:00"
+        },
+        {
+          "id": "8349f9a7-e7fe-49e9-a43e-b6307e494d3b",
+          "name": "チョコクリームパン",
+          "dough_type": "rich",
+          "texture": "ふんわり",
+          "difficulty": "簡単",
+          "description": "菓子パン生地にチョコクリームを包んだ贅沢なパン",
+          "component_ids": [
+            "f533bcd1-047c-4426-b51a-a524b4816299"
+          ],
+          "steps_type": "standard",
+          "created_at": "2026-05-14T00:02:40.022595+00:00"
+        },
+        {
+          "id": "42b986b5-c920-46de-8447-26f63b0dd633",
+          "name": "ジャムパン",
+          "dough_type": "simple",
+          "texture": "ふんわり",
+          "difficulty": "超簡単",
+          "description": "シンプルな生地にジャムを包んだやさしいパン",
+          "component_ids": [
+            "afdef297-ed1c-45ae-bc46-6930630f88c7"
+          ],
+          "steps_type": "standard",
+          "created_at": "2026-05-14T00:02:40.022595+00:00"
+        }
+      ],
+      "components": [
+        {
+          "id": "1f674fd0-9a1a-4ec7-9452-0fc78677e71f",
+          "name": "メロン皮",
+          "type": "topping",
+          "description": "メロンパン用のクッキー生地",
+          "required_ingredients": [
+            "薄力粉",
+            "砂糖",
+            "卵",
+            "バター"
+          ],
+          "optional_ingredients": [
+            "バニラエッセンス",
+            "バニラペースト",
+            "ベーキングパウダー"
+          ],
+          "recipe_steps": [
+            "バターと砂糖をすり混ぜてクリーム状にする",
+            "溶き卵を少しずつ加えてよく混ぜる",
+            "バニラを加えて混ぜる",
+            "薄力粉をふるい入れてさっくり混ぜる",
+            "生地をラップに包んで冷蔵庫で30分休ませる",
+            "丸めた菓子パン生地の上にメロン皮を薄く伸ばして被せ格子模様をつける"
+          ],
+          "created_at": "2026-05-14T00:06:06.145814+00:00"
+        },
+        {
+          "id": "528f99fc-f4f8-4a24-998e-a42feef8f6f1",
+          "name": "クランブル",
+          "type": "topping",
+          "description": "ザクザク食感のトッピング",
+          "required_ingredients": [
+            "薄力粉",
+            "砂糖",
+            "バター"
+          ],
+          "optional_ingredients": [
+            "アーモンドパウダー",
+            "シナモン"
+          ],
+          "recipe_steps": [
+            "バターを小さく切って冷やす",
+            "薄力粉・砂糖・バターを指先でサラサラになるまで混ぜる",
+            "冷蔵庫で冷やしてから使う"
+          ],
+          "created_at": "2026-05-14T00:06:06.145814+00:00"
+        },
+        {
+          "id": "e494565a-b49e-4e52-9979-e59de63cb3e9",
+          "name": "折り込みバターシート",
+          "type": "sheet",
+          "description": "クロワッサン・デニッシュ用の折り込みバター",
+          "required_ingredients": [
+            "バター"
+          ],
+          "optional_ingredients": [
+            "バター"
+          ],
+          "recipe_steps": [
+            "バターを厚手のフィルムで挟みめん棒でたたいて適度に柔らかくする",
+            "12cm正方形になるようにフィルムを折り畳みめん棒で均一に伸ばす",
+            "形が整ったら冷蔵庫で冷やす"
+          ],
+          "created_at": "2026-05-14T00:06:06.145814+00:00"
+        },
+        {
+          "id": "29b8b1e3-a7dc-4fdb-844f-caa3ac7a4d2c",
+          "name": "チョコ折り込みシート",
+          "type": "sheet",
+          "description": "チョコレート風味の折り込みシート",
+          "required_ingredients": [
+            "バター",
+            "チョコレート"
+          ],
+          "optional_ingredients": [
+            "ココアパウダー"
+          ],
+          "recipe_steps": [
+            "バターを室温で柔らかくする",
+            "チョコレートを湯煎で溶かしてバターに混ぜる",
+            "ラップで挟んで薄く伸ばし冷蔵庫で固める"
+          ],
+          "created_at": "2026-05-14T00:06:06.145814+00:00"
+        },
+        {
+          "id": "b4b889bb-1b62-438b-9fc8-49e490264f6b",
+          "name": "あんこ",
+          "type": "filling",
+          "description": "小豆から作る自家製あんこ",
+          "required_ingredients": [
+            "小豆",
+            "砂糖"
+          ],
+          "optional_ingredients": [
+            "塩"
+          ],
+          "recipe_steps": [
+            "成形時に生地を丸く広げ、中央にあんこをのせて包む。",
+            "とじ目を下にして並べる。"
+          ],
+          "created_at": "2026-05-13T08:08:16.829681+00:00"
+        },
+        {
+          "id": "0d8f3c5c-5460-4c7a-9a41-929db057048f",
+          "name": "カスタードクリーム",
+          "type": "filling",
+          "description": "牛乳・卵・砂糖・薄力粉で作る基本のカスタード",
+          "required_ingredients": [
+            "卵",
+            "牛乳",
+            "砂糖",
+            "薄力粉"
+          ],
+          "optional_ingredients": [
+            "バター",
+            "バニラビーンズ",
+            "バニラエッセンス",
+            "バニラペースト"
+          ],
+          "recipe_steps": [
+            "成形時に生地を広げ、カスタードクリームをのせて包む。",
+            "クリームが漏れないよう、とじ目をしっかり閉じる。"
+          ],
+          "created_at": "2026-05-13T08:08:16.829681+00:00"
+        },
+        {
+          "id": "f533bcd1-047c-4426-b51a-a524b4816299",
+          "name": "チョコクリーム",
+          "type": "filling",
+          "description": "チョコレートを使ったリッチなフィリング",
+          "required_ingredients": [
+            "チョコレート"
+          ],
+          "optional_ingredients": [
+            "生クリーム",
+            "バター"
+          ],
+          "recipe_steps": [
+            "成形時に生地を広げ、カスタードクリームをのせて包む。",
+            "クリームが漏れないよう、とじ目をしっかり閉じる。"
+          ],
+          "created_at": "2026-05-13T08:08:16.829681+00:00"
+        },
+        {
+          "id": "afdef297-ed1c-45ae-bc46-6930630f88c7",
+          "name": "ジャム",
+          "type": "filling",
+          "description": "フルーツジャム",
+          "required_ingredients": [
+            "フルーツ",
+            "砂糖"
+          ],
+          "optional_ingredients": [
+            "レモン汁"
+          ],
+          "recipe_steps": [
+            "成形時に生地を広げ、中央にジャムをのせて包む。",
+            "焼成中に漏れないよう、生地の端をしっかり密着させる。"
+          ],
+          "created_at": "2026-05-13T08:08:16.829681+00:00"
+        }
+      ]
+    }
   }
 ]

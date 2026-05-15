@@ -261,10 +261,23 @@ JSON出力例：
       let sugarReduction = 0;
 
       const fillingsData = rawFillings.map(f => {
-        const grams = Math.round(flourGrams * (f.ratio || 0) / 100);
+        let ratio = parseFloat(f.ratio);
         let name = f.name || "具材";
         let timing = f.timing || "";
         let inst = f.inst || "";
+
+        // AIが数値を返さなかった場合のデフォルト値設定（0g回避）
+        if (isNaN(ratio) || ratio <= 0) {
+          if (name.includes("にんにく") || name.includes("ガーリック") || name.includes("塩") || name.includes("ハーブ")) {
+            ratio = 2; // 香辛料系は2%
+          } else if (name.includes("あん") || name.includes("クリーム") || name.includes("ジャム")) {
+            ratio = 50; // ペースト系は50%
+          } else {
+            ratio = 10; // その他は10%
+          }
+        }
+
+        const grams = Math.round(flourGrams * ratio / 100);
 
         // あんこ・クリーム等のペースト具材の安全処理（捏ね工程で練り込まないように修正）
         if (name.includes("あん") || name.includes("餡") || name.includes("クリーム") || name.includes("ジャム")) {
