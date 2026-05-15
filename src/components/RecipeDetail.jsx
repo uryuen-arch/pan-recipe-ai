@@ -9,7 +9,10 @@ export default function RecipeDetail({ recipe, onBack }) {
   const [recipeDbId, setRecipeDbId] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { initRecipe(); }, []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    initRecipe();
+  }, []);
 
   const initRecipe = async () => {
     try {
