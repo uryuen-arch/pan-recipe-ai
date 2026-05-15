@@ -207,7 +207,7 @@ JSON出力例：
       const ai = aiData.recipes[i] || aiData.recipes[0] || {};
       const { calc, steps, flourGrams, texture, isBread } = config;
 
-      const BASE_MATERIAL_NAMES = ["強力粉", "薄力粉", "全粒粉", "塩", "水", "ドライイースト", "牛乳", "ミルク", "卵", "無塩バター", "有塩バター", "バター", "マーガリン", "オリーブオイル", "砂糖"];
+      const BASE_MATERIAL_NAMES = ["強力粉", "薄力粉", "全粒粉", "塩", "水", "ドライイースト", "牛乳", "ミルク", "卵", "無塩バター", "有塩バター", "バター", "マーガリン", "オリーブオイル", "砂糖", "モルト", "モルトパウダー", "モルトシロップ", "モルトエキス"];
       const rawFillings = (ai.fillings || []).filter(f => {
         if (!f || !f.name) return false;
         return !BASE_MATERIAL_NAMES.some(base => f.name.includes(base) && !String(f.inst || "").includes("仕上げ"));
