@@ -238,7 +238,12 @@ export function matchBreads(matchedProfiles, matchedComponents, breads, userIngr
 
   for (const bread of breads) {
     if (!bread) continue;
-    const doughProfile = (matchedProfiles || []).find(m => 
+    const doughProfile = (matchedProfiles || []).find(m => {
+      const typeMatch = m.profile?.dough_type?.trim().toLowerCase() === bread.dough_type?.trim().toLowerCase();
+      // 食感も一致するものを最優先に探す
+      const textureMatch = m.profile?.texture === bread.texture;
+      return typeMatch && textureMatch;
+    }) || (matchedProfiles || []).find(m => 
       m.profile?.dough_type?.trim().toLowerCase() === bread.dough_type?.trim().toLowerCase()
     );
     if (!doughProfile) continue;

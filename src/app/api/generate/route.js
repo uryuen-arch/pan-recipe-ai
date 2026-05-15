@@ -59,30 +59,35 @@ export async function POST(request) {
     console.log(`Engine Matched: breads=${matchedBreadsList.length}, profiles=${matchedProfiles.length}, variations=${matchedVariations.length}`);
 
     // 3. 提案候補の選択（カテゴリ優先・フラットに統合）
-    // すべての候補を統合（lackingは除外）
+    // すべての候補を統合
     const allCandidates = [
-      ...matchedBreadsList.filter(b => b.category !== 'lacking').map(b => ({ ...b, type: "bread", sortPriority: 1 })),
-      ...matchedVariations.filter(v => v.category !== 'lacking').map(v => ({ ...v, type: "variation", sortPriority: 2 })),
+      ...matchedBreadsList.map(b => ({ ...b, type: "bread", sortPriority: 1 })),
+      ...matchedVariations.map(v => ({ ...v, type: "variation", sortPriority: 2 })),
       ...matchedProfiles.filter(p => p.category !== 'lacking').map(p => ({ ...p, type: "base", sortPriority: 3 }))
     ];
 
-    // ユーザー指定の食感に合致するかどうかでボーナス
-    allCandidates.forEach(c => {
+    // 食感による厳格フィルタリング（指定がある場合、不一致なものは除外）
+    const filteredCandidates = allCandidates.filter(c => {
+      if (!prefTexture) return c.category !== 'lacking'; // 指定なしならlacking以外
+      const itemTexture = c.type === "bread" ? c.bread.texture : (c.type === "variation" ? c.baseProfile?.texture : c.profile?.texture);
+      return itemTexture === prefTexture && c.category !== 'lacking';
+    });
+
+    // フィルタリングで候補が全滅した場合は、少し条件を緩める（フォールバック）
+    const finalCandidates = filteredCandidates.length > 0 ? filteredCandidates : allCandidates.filter(c => c.category !== 'lacking');
+
+    // スコアリングとソート
+    finalCandidates.forEach(c => {
       const itemTexture = c.type === "bread" ? c.bread.texture : (c.type === "variation" ? c.baseProfile?.texture : c.profile?.texture);
       if (prefTexture && itemTexture === prefTexture) {
-        c.score = (c.score || 0) + 30; // 非常に大きなボーナス
+        c.score = (c.score || 0) + 50; // 強力なボーナス
       }
     });
 
-    // カテゴリ（perfect > almost）を最優先にし、その中でスコア（食感ボーナス含む）でソート
-    allCandidates.sort((a, b) => {
+    finalCandidates.sort((a, b) => {
       const catOrder = { perfect: 0, almost: 1, lacking: 2 };
       if (catOrder[a.category] !== catOrder[b.category]) return catOrder[a.category] - catOrder[b.category];
-      
-      // スコア（食感・具材ボーナス）でソート
       if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
-      
-      // それでも同じなら型優先度
       return a.sortPriority - b.sortPriority;
     });
 
@@ -91,15 +96,12 @@ export async function POST(request) {
     const seenDoughTypes = new Set();
     const seenNames = new Set(excludeNames);
 
-    for (const item of allCandidates) {
+    for (const item of finalCandidates) {
       if (finalSelection.length >= 3) break;
       const name = item.type === "bread" ? item.bread.name : (item.type === "variation" ? item.variation.variation_name : item.profile.type);
       const doughType = item.type === "bread" ? item.bread.dough_type : (item.type === "variation" ? item.variation.base_dough_type : item.profile.dough_type);
       
-      // 同じ名前や同じ生地タイプの重複を避ける（バリエーション豊かにするため）
       if (seenNames.has(name)) continue;
-      // perfectが複数ある場合は、生地タイプが被っても出す（作りやすさ優先）
-      // ただし全く同じものは避ける
       if (item.category !== 'perfect' && seenDoughTypes.has(doughType)) continue;
 
       finalSelection.push(item);
@@ -175,12 +177,29 @@ export async function POST(request) {
       let baseSteps = getStepsTemplate(texture, method, timeCondition, { ...calc, profile: { ...profile, steps_type: stepsType, texture } });
 
       if (isBread && item.components && item.components.length > 0) {
-        const componentInstructions = item.components.flatMap(c => (c.recipe_steps || []).map(step => `【${c.name}作り】${step}`));
-        const prepStep = baseSteps.find(s => s.label === "下準備");
-        if (prepStep) prepStep.desc += " " + componentInstructions.join(" ");
+        item.components.forEach(c => {
+          (c.recipe_steps || []).forEach(step => {
+            const instr = `【${c.name}作り】${step}`;
+            // 「包む」「のせる」「被せ」「閉じる」があれば成形ステップに、それ以外は下準備に配置
+            if (step.includes("包む") || step.includes("のせる") || step.includes("被せ") || step.includes("閉じる")) {
+              const target = baseSteps.find(s => s.label === "成形" || s.label.includes("成形"));
+              if (target) target.desc += " " + instr;
+            } else {
+              const target = baseSteps.find(s => s.label === "下準備" || s.label.includes("下準備"));
+              if (target) target.desc += " " + instr;
+            }
+          });
+        });
       } else if (isVariation && item.variation.steps_note) {
-        const prepStep = baseSteps.find(s => s.label === "下準備" || s.label === "成形");
-        if (prepStep) prepStep.desc += " " + item.variation.steps_note;
+        const note = item.variation.steps_note;
+        // バリエーション工程も内容に応じて振り分け
+        if (note.includes("包む") || note.includes("のせる") || note.includes("巻") || note.includes("のせ")) {
+          const target = baseSteps.find(s => s.label === "成形" || s.label.includes("成形") || s.label.includes("トッピング"));
+          if (target) target.desc += " " + note;
+        } else {
+          const target = baseSteps.find(s => s.label === "下準備" || s.label.includes("下準備"));
+          if (target) target.desc += " " + note;
+        }
       }
 
       return {
@@ -208,7 +227,8 @@ export async function POST(request) {
 
 制約事項：
 - 対象パンのリストにあるパンの名称と特徴、および（注記）にある工程指示を必ずレシピに反映してください。
-- リストにない「ドライフルーツ」や「チョコ」などの主要な具材を勝手に追加しないでください。
+- 入力材料にあるもの、および対象パンの構成に必要な最小限のマスタデータ成分以外（例：ごま、チーズ、トマトソース等）を勝手に追加しないでください。
+- 入力材料にない主要なトッピングやフィリング（例：ごま、チーズ、トマトソース）は、元のパンの特徴であっても、材料が入力されていない限りレシピから除外してください。
 - 入力材料にある具材（例：バナナ、にんにく）を最大限活用してください。
 - 「あんこ」や「クリーム」などのペースト状の具材は、必ず「成形」時に「生地で包む」ように指定してください（タイミング：成形時に包む）。
 
@@ -266,13 +286,13 @@ JSON出力例：
         let timing = f.timing || "";
         let inst = f.inst || "";
 
-        const isAromatic = name.includes("にんにく") || name.includes("ガーリック") || name.includes("塩") || name.includes("ハーブ") || name.includes("スパイス");
-        const isPaste = name.includes("あん") || name.includes("餡") || name.includes("クリーム") || name.includes("ジャム");
+        const isAromatic = name.includes("にんにく") || name.includes("ガーリック") || name.includes("塩") || name.includes("ハーブ") || name.includes("スパイス") || name.includes("バニラ") || name.includes("ごま") || name.includes("胡麻");
+        const isPaste = name.includes("あん") || name.includes("餡") || name.includes("クリーム") || name.includes("ジャム") || name.includes("ソース") || name.includes("チーズ");
 
         // AIが数値を返さなかった場合のデフォルト値設定（0g回避）
         if (isNaN(ratio) || ratio <= 0) {
           if (isAromatic) {
-            ratio = 3; // 香辛料系は3%（200gの粉に対し6g程度）
+            ratio = 1; // 香辛料・種子系は1%（約3g）
           } else if (isPaste) {
             ratio = 50; // ペースト系は50%
           } else {
@@ -280,9 +300,13 @@ JSON出力例：
           }
         }
 
-        // 上限設定（安全策：にんにくなどが350gになるのを防ぐ）
-        if (isAromatic && ratio > 5) {
-          ratio = 5; // にんにく等は最大でも粉の5%まで
+        // 上限設定（安全策）
+        if (isAromatic && ratio > 2) {
+          ratio = 2; // バニラやごまは最大でも粉の2%まで
+        } else if (isPaste && ratio > 80) {
+          ratio = 80; // あんこ等は最大80%
+        } else if (!isPaste && ratio > 25) {
+          ratio = 25; // 一般具材（バナナ等）は最大25%
         }
 
         const grams = Math.round(flourGrams * ratio / 100);

@@ -83,10 +83,13 @@ export const PASTE_ADJUSTMENTS = {
 // 準強力粉を使用するパンのリスト
 // ─────────────────────────────────────
 const SEMI_STRONG_BREADS = [
-  "カイザーゼンメル", "ブール", "プレッツェル", "ベーグル", 
+  "カイザーゼンメル", "ブール", "プレッツェル",
   "カントリーブレッド", "フォカッチャ", "カンパーニュ", 
-  "バゲット", "チャバタ", "塩パン", "クロワッサン", "シュトーレン"
+  "バゲット", "チャバタ", "クロワッサン", "シュトーレン"
 ];
+
+// 強力粉・準強力粉どちらでも良いパン（ユーザー入力を優先）
+const FLEXIBLE_FLOUR_BREADS = ["ベーグル", "塩パン"];
 
 // ─────────────────────────────────────
 // メイン：配合を計算して返す（DB版）
@@ -116,14 +119,20 @@ export function calcRecipe({
   let finalIngredients = [];
 
   // 1. 粉類（強力粉 / 準強力粉 / 全粒粉 / 薄力粉代用）
-  const useSemiStrong = breadName && SEMI_STRONG_BREADS.some(b => breadName.includes(b));
+  const isSemiStrongBread = breadName && SEMI_STRONG_BREADS.some(b => breadName.includes(b));
+  const isFlexibleBread = breadName && FLEXIBLE_FLOUR_BREADS.some(b => breadName.includes(b));
+  
+  // 準強力粉を使うべきかどうかの判定
+  // - 準強力粉専用パンである
+  // - または、どちらでも良いパンで、ユーザーが準強力粉を持っている
+  const useSemiStrong = isSemiStrongBread || (isFlexibleBread && hasSemiStrong);
   
   if (profile.whole_wheat > 0) {
     const wwGrams = Math.round(flourGrams * profile.whole_wheat / 100);
     const mainFlourGrams = flourGrams - wwGrams;
     
     if (useSemiStrong && !hasSemiStrong && hasThinFlour) {
-      // 準強力粉を強力粉+薄力粉(7:3)で代用
+      // 準強力粉を強力粉+薄力粉(7:3)で代用（専用パンの場合のみ）
       const strongGrams = Math.round(mainFlourGrams * 0.7);
       const thinGrams = mainFlourGrams - strongGrams;
       finalIngredients.push({ name: "強力粉", grams: strongGrams, ratio: Math.round(strongGrams / flourGrams * 100) });
@@ -135,7 +144,7 @@ export function calcRecipe({
     finalIngredients.push({ name: "全粒粉", grams: wwGrams, ratio: profile.whole_wheat });
   } else {
     if (useSemiStrong && !hasSemiStrong && hasThinFlour) {
-      // 準強力粉を強力粉+薄力粉(7:3)で代用
+      // 準強力粉を強力粉+薄力粉(7:3)で代用（専用パンの場合のみ）
       const strongGrams = Math.round(flourGrams * 0.7);
       const thinGrams = flourGrams - strongGrams;
       finalIngredients.push({ name: "強力粉", grams: strongGrams, ratio: 70 });
