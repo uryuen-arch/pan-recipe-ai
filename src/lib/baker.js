@@ -80,6 +80,15 @@ export const PASTE_ADJUSTMENTS = {
 };
 
 // ─────────────────────────────────────
+// 準強力粉を使用するパンのリスト
+// ─────────────────────────────────────
+const SEMI_STRONG_BREADS = [
+  "カイザーゼンメル", "ブール", "プレッツェル", "ベーグル", 
+  "カントリーブレッド", "フォカッチャ", "カンパーニュ", 
+  "バゲット", "チャバタ", "塩パン", "クロワッサン", "シュトーレン"
+];
+
+// ─────────────────────────────────────
 // メイン：配合を計算して返す（DB版）
 // ─────────────────────────────────────
 export function calcRecipe({
@@ -88,6 +97,7 @@ export function calcRecipe({
   timeCondition = "1時間",
   method = "オーブン",
   userIngredients = [],
+  breadName = null, // 追加
 }) {
   const yeastMult   = YEAST_MULTIPLIER[timeCondition] || 1.0;
   const ferment     = FERMENTATION_CONFIG[timeCondition] || FERMENTATION_CONFIG["default"];
@@ -98,18 +108,42 @@ export function calcRecipe({
   const hasEgg = userIngredients.some(i => i.includes("卵") || i.includes("egg"));
   const hasMargarine = userIngredients.some(i => i.includes("マーガリン"));
   const hasSaltedButter = userIngredients.some(i => i.includes("有塩バター"));
+  const hasSemiStrong = userIngredients.some(i => i.includes("準強力粉") || i.includes("フランスパン用粉"));
+  const hasThinFlour = userIngredients.some(i => i.includes("薄力粉"));
 
   // 水分量の計算（基本の水 + 牛乳 + 卵の合計水分量を調整）
   let targetWaterRatio = (profile.water || 0) + (profile.milk || 0);
   let finalIngredients = [];
 
-  // 1. 強力粉 / 全粒粉
+  // 1. 粉類（強力粉 / 準強力粉 / 全粒粉 / 薄力粉代用）
+  const useSemiStrong = breadName && SEMI_STRONG_BREADS.some(b => breadName.includes(b));
+  
   if (profile.whole_wheat > 0) {
     const wwGrams = Math.round(flourGrams * profile.whole_wheat / 100);
-    finalIngredients.push({ name: "強力粉", grams: flourGrams - wwGrams, ratio: 100 - profile.whole_wheat });
+    const mainFlourGrams = flourGrams - wwGrams;
+    
+    if (useSemiStrong && !hasSemiStrong && hasThinFlour) {
+      // 準強力粉を強力粉+薄力粉(7:3)で代用
+      const strongGrams = Math.round(mainFlourGrams * 0.7);
+      const thinGrams = mainFlourGrams - strongGrams;
+      finalIngredients.push({ name: "強力粉", grams: strongGrams, ratio: Math.round(strongGrams / flourGrams * 100) });
+      finalIngredients.push({ name: "薄力粉", grams: thinGrams, ratio: Math.round(thinGrams / flourGrams * 100), note: "準強力粉の代用として" });
+    } else {
+      const flourName = useSemiStrong ? "準強力粉" : "強力粉";
+      finalIngredients.push({ name: flourName, grams: mainFlourGrams, ratio: 100 - profile.whole_wheat });
+    }
     finalIngredients.push({ name: "全粒粉", grams: wwGrams, ratio: profile.whole_wheat });
   } else {
-    finalIngredients.push({ name: "強力粉", grams: flourGrams, ratio: 100 });
+    if (useSemiStrong && !hasSemiStrong && hasThinFlour) {
+      // 準強力粉を強力粉+薄力粉(7:3)で代用
+      const strongGrams = Math.round(flourGrams * 0.7);
+      const thinGrams = flourGrams - strongGrams;
+      finalIngredients.push({ name: "強力粉", grams: strongGrams, ratio: 70 });
+      finalIngredients.push({ name: "薄力粉", grams: thinGrams, ratio: 30, note: "準強力粉の代用として" });
+    } else {
+      const flourName = useSemiStrong ? "準強力粉" : "強力粉";
+      finalIngredients.push({ name: flourName, grams: flourGrams, ratio: 100 });
+    }
   }
 
   // 2. 水分（牛乳優先置換）

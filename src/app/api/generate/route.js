@@ -128,8 +128,16 @@ export async function POST(request) {
       const profile = isBread ? item.doughProfile : (isVariation ? item.baseProfile : item.profile);
       const texture = profile?.texture || "ふんわり";
       const stepsType = isBread ? item.bread.steps_type : (isVariation ? item.variation.steps_type : profile?.steps_type) || "standard";
+      const breadName = isBread ? item.bread.name : (isVariation ? item.variation.variation_name : (profile?.type || "基本のパン"));
 
-      const calc = calcRecipe({ flourGrams, profile: { ...profile, steps_type: stepsType }, timeCondition, method, userIngredients });
+      const calc = calcRecipe({ 
+        flourGrams, 
+        profile: { ...profile, steps_type: stepsType }, 
+        timeCondition, 
+        method, 
+        userIngredients,
+        breadName // 追加
+      });
       let baseSteps = getStepsTemplate(texture, method, timeCondition, { ...calc, profile: { ...profile, steps_type: stepsType } });
 
       if (isBread && item.components && item.components.length > 0) {
