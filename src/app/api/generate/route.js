@@ -266,15 +266,23 @@ JSON出力例：
         let timing = f.timing || "";
         let inst = f.inst || "";
 
+        const isAromatic = name.includes("にんにく") || name.includes("ガーリック") || name.includes("塩") || name.includes("ハーブ") || name.includes("スパイス");
+        const isPaste = name.includes("あん") || name.includes("餡") || name.includes("クリーム") || name.includes("ジャム");
+
         // AIが数値を返さなかった場合のデフォルト値設定（0g回避）
         if (isNaN(ratio) || ratio <= 0) {
-          if (name.includes("にんにく") || name.includes("ガーリック") || name.includes("塩") || name.includes("ハーブ")) {
-            ratio = 2; // 香辛料系は2%
-          } else if (name.includes("あん") || name.includes("クリーム") || name.includes("ジャム")) {
+          if (isAromatic) {
+            ratio = 3; // 香辛料系は3%（200gの粉に対し6g程度）
+          } else if (isPaste) {
             ratio = 50; // ペースト系は50%
           } else {
             ratio = 10; // その他は10%
           }
+        }
+
+        // 上限設定（安全策：にんにくなどが350gになるのを防ぐ）
+        if (isAromatic && ratio > 5) {
+          ratio = 5; // にんにく等は最大でも粉の5%まで
         }
 
         const grams = Math.round(flourGrams * ratio / 100);
