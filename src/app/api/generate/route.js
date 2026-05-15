@@ -33,6 +33,7 @@ export async function POST(request) {
     const timeCondition = conditions.find(c => TIME_MAP[c])       || "1時間";
     const method        = conditions.find(c => METHOD_MAP[c])     || "オーブン";
     const difficulty    = conditions.find(c => DIFFICULTY_MAP[c]) || "簡単";
+    const prefTexture   = conditions.find(c => ["ふんわり", "ハード系", "もちもち", "しっとり"].includes(c));
 
     const userIngredients = ingredients.split(/[,、\n]/).map(s => s.trim()).filter(Boolean);
 
@@ -65,12 +66,24 @@ export async function POST(request) {
       ...matchedProfiles.filter(p => p.category !== 'lacking').map(p => ({ ...p, type: "base", sortPriority: 3 }))
     ];
 
-    // カテゴリ（perfect > almost）を最優先にし、その中で型優先度とスコアでソート
+    // ユーザー指定の食感に合致するかどうかでボーナス
+    allCandidates.forEach(c => {
+      const itemTexture = c.type === "bread" ? c.bread.texture : (c.type === "variation" ? c.baseProfile?.texture : c.profile?.texture);
+      if (prefTexture && itemTexture === prefTexture) {
+        c.score = (c.score || 0) + 30; // 非常に大きなボーナス
+      }
+    });
+
+    // カテゴリ（perfect > almost）を最優先にし、その中でスコア（食感ボーナス含む）でソート
     allCandidates.sort((a, b) => {
       const catOrder = { perfect: 0, almost: 1, lacking: 2 };
       if (catOrder[a.category] !== catOrder[b.category]) return catOrder[a.category] - catOrder[b.category];
-      if (a.sortPriority !== b.sortPriority) return a.sortPriority - b.sortPriority;
-      return (b.score || 0) - (a.score || 0);
+      
+      // スコア（食感・具材ボーナス）でソート
+      if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
+      
+      // それでも同じなら型優先度
+      return a.sortPriority - b.sortPriority;
     });
 
     // 重複を排除しつつ上位3つを選択

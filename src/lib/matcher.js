@@ -137,6 +137,10 @@ export function matchRecipes(userIngredients, profiles) {
     const hasNoSubstituteMissing = missing.some(m => NO_SUBSTITUTE.has(m));
     const identityMissing = isIdentityMissing(profile.type, profile.description, normalized, fillings);
 
+    // 準強力粉の特別扱い
+    const hasSemiStrong = hasIngredient(normalized, "準強力粉");
+    if (hasSemiStrong && profile.texture === "ハード系") score += 10;
+
     let category;
     if (identityMissing || hasNoSubstituteMissing || missing.length > 2) category = "lacking";
     else if (missing.length === 0) category = "perfect";
@@ -182,6 +186,12 @@ export function matchVariations(userIngredients, variations, matchedProfiles) {
     const matchedOptional = (variation.optional || []).filter(opt => hasIngredient(normalized, opt));
 
     const identityMissing = isIdentityMissing(variation.variation_name, variation.description, normalized, fillings);
+    const baseProfile = matchedProfiles.find(m => m.profile.dough_type === variation.base_dough_type);
+
+    // 準強力粉の特別扱い
+    const hasSemiStrong = hasIngredient(normalized, "準強力粉");
+    let score = 0; 
+    if (hasSemiStrong && baseProfile?.profile?.texture === "ハード系") score += 10;
 
     let category;
     if (identityMissing) category = "lacking";
@@ -189,8 +199,7 @@ export function matchVariations(userIngredients, variations, matchedProfiles) {
     else if (missingRequired.length <= 1) category = "almost";
     else category = "lacking";
 
-    const baseProfile = matchedProfiles.find(m => m.profile.dough_type === variation.base_dough_type);
-    results.push({ variation, baseProfile: baseProfile?.profile, category, missing: missingRequired, matchedOptional, isVariation: true });
+    results.push({ variation, baseProfile: baseProfile?.profile, category, missing: missingRequired, matchedOptional, isVariation: true, score });
   }
 
   return results.sort((a, b) => {
@@ -250,13 +259,17 @@ export function matchBreads(matchedProfiles, matchedComponents, breads, userIngr
     const hasMalt = hasIngredient(normalizedUserIngs, "モルト");
     const maltBonus = (hasMalt && bread.texture === "ハード系") ? 8 : 0;
 
+    // 準強力粉の特別扱い：ハード系でのボーナス
+    const hasSemiStrong = hasIngredient(normalizedUserIngs, "準強力粉");
+    const semiStrongBonus = (hasSemiStrong && bread.texture === "ハード系") ? 10 : 0;
+
     // 生地タイプ（強力粉・薄力粉など）のマッチングボーナス
     const doughMatchBonus = hasIngredient(normalizedUserIngs, doughProfile.profile?.type) ? 2 : 0;
 
     results.push({
       bread, doughProfile: doughProfile.profile, components: breadComponents.map(c => c.component),
       category, missing: Array.from(new Set([...(doughProfile.missing || []), ...breadComponents.flatMap(c => c.missing || [])])),
-      isBread: true, score: (doughProfile.score || 0) + (bonus * 10) + doughMatchBonus + maltBonus
+      isBread: true, score: (doughProfile.score || 0) + (bonus * 10) + doughMatchBonus + maltBonus + semiStrongBonus
     });
   }
 
