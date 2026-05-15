@@ -142,7 +142,31 @@ export function calcRecipe({
   }
 
   // 5. 砂糖・塩・イースト
-  if ((profile.sugar || 0) > 0) finalIngredients.push({ name: "砂糖", grams: Math.round(flourGrams * profile.sugar / 100), ratio: profile.sugar });
+  const isHard = profile.texture === "ハード系";
+  const hasMaltPowder = userIngredients.some(i => i.includes("モルトパウダー"));
+  const hasMaltSyrup = userIngredients.some(i => i.includes("モルトシロップ") || i.includes("モルトエキス"));
+
+  if (isHard && (hasMaltPowder || hasMaltSyrup)) {
+    // ハード系でモルトがある場合、砂糖を0にしてモルトを追加
+    if (hasMaltSyrup) {
+      finalIngredients.push({ 
+        name: "モルトシロップ", 
+        grams: Math.round(flourGrams * 0.5 / 100 * 10) / 10, 
+        ratio: 0.5, 
+        note: "イーストの働きを助け、風味と焼き色を向上させます" 
+      });
+    } else {
+      finalIngredients.push({ 
+        name: "モルトパウダー", 
+        grams: Math.round(flourGrams * 0.1 / 100 * 10) / 10, 
+        ratio: 0.1, 
+        note: "イーストの働きを助け、風味と焼き色を向上させます" 
+      });
+    }
+  } else {
+    if ((profile.sugar || 0) > 0) finalIngredients.push({ name: "砂糖", grams: Math.round(flourGrams * profile.sugar / 100), ratio: profile.sugar });
+  }
+
   if ((profile.salt || 0) > 0) finalIngredients.push({ name: "塩", grams: Math.round(flourGrams * profile.salt / 100), ratio: profile.salt });
 
   const yeastRatio = Math.round(profile.yeast * yeastMult * 10) / 10;
