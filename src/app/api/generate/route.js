@@ -315,7 +315,7 @@ JSON出力例：
         // バリエーション固有の工程（steps_note）を最終ステップにも強制反映
         if (config.isVariation && config.item.variation.steps_note) {
           const note = config.item.variation.steps_note;
-          if (step.label.includes("成形") && !desc.includes(note)) {
+          if ((step.label.includes("成形") || step.label.includes("トッピング")) && !desc.includes(note)) {
             desc += ` （${note}）`;
           }
         }
