@@ -208,7 +208,7 @@ export async function POST(request) {
         breadName: isBread ? item.bread.name : (isVariation ? item.variation.variation_name : null),
         breadDesc: isBread ? item.bread.description : (isVariation ? item.variation.description : null),
       };
-    });
+    }));
 
     const profileSummary = recipeConfigs.map((config, i) => {
       const name = config.breadName || (config.profile?.type || "基本のパン");
