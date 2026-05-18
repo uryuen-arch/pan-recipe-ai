@@ -149,7 +149,7 @@ export async function POST(request) {
 
     // 4. レシピ構成の組み立て
     const FLOUR_AMOUNTS = [250, 300, 350];
-    const recipeConfigs = finalSelection.map((item, i) => {
+    const recipeConfigs = await Promise.all(finalSelection.map(async (item, i) => {
       const flourGrams = FLOUR_AMOUNTS[i] || 300;
       const isBread = item.type === "bread";
       const isVariation = item.type === "variation";
@@ -174,7 +174,7 @@ export async function POST(request) {
         userIngredients,
         breadName
       });
-      let baseSteps = getStepsTemplate(texture, method, timeCondition, { ...calc, profile: { ...profile, steps_type: stepsType, texture } });
+      let baseSteps = await getStepsTemplate(texture, method, timeCondition, { ...calc, profile: { ...profile, steps_type: stepsType, texture } });
 
       if (isBread && item.components && item.components.length > 0) {
         item.components.forEach(c => {
