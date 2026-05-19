@@ -15,29 +15,51 @@ function resolveTemplate(template, context) {
  */
 export async function getStepsTemplate(texture, method, timeCondition, recipeData) {
   // 1. group_key の決定
-  let groupKey = `${texture}_${method}`;
+  const baseKey = `${texture}_${method}`;
   const stepsType = recipeData?.profile?.steps_type;
+  
+  let groupKey = baseKey;
 
-  // 特殊製法テンプレートがあれば優先
-  if (stepsType) {
+  // 特殊製法（croissant, bagel等）があれば優先
+  // "standard" は汎用的な値なので、baseKey（ふんわり_オーブン等）を優先する
+  if (stepsType && stepsType !== "standard") {
     groupKey = stepsType;
   } else if (timeCondition === "一晩") {
-    // 一晩発酵は専用テンプレート
     groupKey = "一晩_オーブン";
   }
 
-  // 2. DBから全ステップ取得 (一括フェッチ)
-  const { data: steps, error } = await supabase
+  console.log(`[getStepsTemplate] Fetching steps for groupKey: ${groupKey} (base: ${baseKey}, type: ${stepsType})`);
+
+  // 2. DBから全ステップ取得
+  let { data: steps, error } = await supabase
     .from('master_steps')
     .select('*')
     .eq('group_key', groupKey)
     .order('step_order', { ascending: true });
 
-  if (error || !steps || steps.length === 0) {
-    console.error(`Steps fetch error for group_key: ${groupKey}`, error);
-    // フォールバック: 最低限のデータを返すか、空配列
+  // データが空の場合の最終フォールバック
+  if ((!steps || steps.length === 0) && groupKey !== "ふんわり_オーブン") {
+    console.warn(`[getStepsTemplate] Steps empty for ${groupKey}, trying fallback to ふんわり_オーブン`);
+    const fallbackRes = await supabase
+      .from('master_steps')
+      .select('*')
+      .eq('group_key', "ふんわり_オーブン")
+      .order('step_order', { ascending: true });
+    steps = fallbackRes.data;
+    error = fallbackRes.error;
+  }
+
+  if (error) {
+    console.error(`[getStepsTemplate] DB Error:`, error);
     return [];
   }
+
+  if (!steps || steps.length === 0) {
+    console.error(`[getStepsTemplate] No steps found in DB for ${groupKey} or fallback.`);
+    return [];
+  }
+
+  console.log(`[getStepsTemplate] Successfully fetched ${steps.length} steps.`);
 
   // 3. プレースホルダー用のコンテキスト準備
   const hasButter = (recipeData.profile?.butter || 0) > 0;
