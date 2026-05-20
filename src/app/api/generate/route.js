@@ -373,6 +373,18 @@ JSON出力例：
         return { ...step, desc };
       });
 
+      // おすすめ商品のマッチング
+      const recommendedProducts = allProducts.filter(p => {
+        if (texture === "ハード系") {
+          return p.category === "準強力粉";
+        } else if (texture === "ふんわり" && difficulty === "本格") {
+          return p.name === "春よ恋" || p.name === "はるゆたか";
+        } else if (texture === "ふんわり") {
+          return p.name === "カメリヤ" || p.name === "イーグル";
+        }
+        return p.category === "強力粉";
+      }).slice(0, 2);
+
       return {
         name: ai.name || config.breadName || "カスタムパン",
         catchcopy: ai.catchcopy || "",
@@ -385,21 +397,6 @@ JSON出力例：
         stepsData: updatedSteps,
         time: config.time || "約1時間",
         servings: "8個分",
-        difficulty_level: difficulty,
-        method,
-        texture,
-        flourGrams
-      };
-    });
-
-    console.log("--- Generating Recipe END (Success) ---");
-    return Response.json({ recipes });
-  } catch (error) {
-    console.error("Critical API error:", error);
-    return Response.json({ error: `エラーが発生しました: ${error.message}` }, { status: 500 });
-  }
-}
-rvings: "8個分",
         difficulty_level: difficulty,
         method,
         texture,
