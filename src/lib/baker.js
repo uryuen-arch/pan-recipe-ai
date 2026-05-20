@@ -77,6 +77,11 @@ export const PASTE_ADJUSTMENTS = {
   "ほうれん草": { liquidFactor: 0.3, sugarFactor: 0.0 },
   "にんじん":  { liquidFactor: 0.1, sugarFactor: 0.0 },
   "トマト":    { liquidFactor: 0.4, sugarFactor: 0.0 },
+  "あんこ":    { liquidFactor: 0.2, sugarFactor: 0.4 },
+  "ジャム":    { liquidFactor: 0.3, sugarFactor: 0.5 },
+  "カスタード": { liquidFactor: 0.4, sugarFactor: 0.3 },
+  "チョコペースト": { liquidFactor: 0.1, sugarFactor: 0.4 },
+  "味噌":      { liquidFactor: 0.3, sugarFactor: 0.0 },
 };
 
 // ─────────────────────────────────────

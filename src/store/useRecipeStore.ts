@@ -1,10 +1,22 @@
 import { create } from 'zustand'
 
-type Recipe = {
-  title: string
+export type Recipe = {
+  name: string
+  catchcopy: string
+  feature: string
+  category: string
+  missing: string[]
   ingredients: string[]
   steps: string[]
-  time?: string
+  ingredientsData: any[]
+  stepsData: any[]
+  time: string
+  servings: string
+  difficulty_level: string
+  method: string
+  texture: string
+  flourGrams: number
+  recommendedProducts?: any[]
 }
 
 type Store = {

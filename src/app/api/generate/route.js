@@ -38,18 +38,20 @@ export async function POST(request) {
     const userIngredients = ingredients.split(/[,、\n]/).map(s => s.trim()).filter(Boolean);
 
     // 1. 各種マスタデータの取得
-    const [profilesRes, componentsRes, breadsRes, variationsRes] = await Promise.all([
+    const [profilesRes, componentsRes, breadsRes, variationsRes, productsRes] = await Promise.all([
       supabase.from("bread_profiles").select("*"),
       supabase.from("components").select("*"),
       supabase.from("breads").select("*"),
-      supabase.from("variations").select("*")
+      supabase.from("variations").select("*"),
+      supabase.from("products").select("*")
     ]);
 
     let profiles = (profilesRes.data && profilesRes.data.length > 0) ? profilesRes.data : FALLBACK_PROFILES;
     let components = componentsRes.data || [];
     let breads = breadsRes.data || [];
     let variations = variationsRes.data || [];
-    console.log(`DB Fetched: profiles=${profiles.length}, components=${components.length}, breads=${breads.length}, variations=${variations.length}`);
+    let allProducts = productsRes.data || [];
+    console.log(`DB Fetched: profiles=${profiles.length}, components=${components.length}, breads=${breads.length}, variations=${variations.length}, products=${allProducts.length}`);
 
     // 2. マッチングエンジンの実行
     const matchedProfiles = matchRecipes(userIngredients, profiles);
@@ -273,7 +275,7 @@ JSON出力例：
 
       const BASE_MATERIAL_NAMES = ["強力粉", "薄力粉", "全粒粉", "塩", "水", "ドライイースト", "牛乳", "ミルク", "卵", "無塩バター", "有塩バター", "バター", "マーガリン", "オリーブオイル", "砂糖", "モルト", "モルトパウダー", "モルトシロップ", "モルトエキス"];
       const rawFillings = (ai.fillings || []).filter(f => {
-        if (!f || !f.name) return false;
+        if (!f || !f.name || f.name === "undefined" || f.name === "null") return false;
         return !BASE_MATERIAL_NAMES.some(base => f.name.includes(base) && !String(f.inst || "").includes("仕上げ"));
       });
 
@@ -281,13 +283,13 @@ JSON出力例：
       let sugarReduction = 0;
 
       const fillingsData = rawFillings.map(f => {
-        let ratio = parseFloat(f.ratio);
         let name = f.name || "具材";
+        let ratio = parseFloat(f.ratio);
         let timing = f.timing || "";
         let inst = f.inst || "";
 
         const isAromatic = name.includes("にんにく") || name.includes("ガーリック") || name.includes("塩") || name.includes("ハーブ") || name.includes("スパイス") || name.includes("バニラ") || name.includes("ごま") || name.includes("胡麻");
-        const isPaste = name.includes("あん") || name.includes("餡") || name.includes("クリーム") || name.includes("ジャム") || name.includes("ソース") || name.includes("チーズ");
+        const isPaste = name.includes("あん") || name.includes("餡") || name.includes("クリーム") || name.includes("ジャム") || name.includes("ソース") || name.includes("チーズ") || name.includes("チョコ");
 
         // AIが数値を返さなかった場合のデフォルト値設定（0g回避）
         if (isNaN(ratio) || ratio <= 0) {
@@ -301,19 +303,22 @@ JSON出力例：
         }
 
         // 上限設定（安全策）
-        if (isAromatic && ratio > 2) {
-          ratio = 2; // バニラやごまは最大でも粉の2%まで
-        } else if (isPaste && ratio > 80) {
-          ratio = 80; // あんこ等は最大80%
-        } else if (!isPaste && ratio > 25) {
-          ratio = 25; // 一般具材（バナナ等）は最大25%
+        if (isAromatic && ratio > 5) {
+          ratio = 5; 
+        } else if (isPaste && ratio > 100) {
+          ratio = 100;
+        } else if (!isPaste && ratio > 40) {
+          ratio = 40;
         }
 
         const grams = Math.round(flourGrams * ratio / 100);
 
         // あんこ・クリーム等のペースト具材の安全処理（捏ね工程で練り込まないように修正）
-        if (name.includes("あん") || name.includes("餡") || name.includes("クリーム") || name.includes("ジャム")) {
-          if (timing === "捏ね" || inst.includes("練り込む") || timing === "成形") {
+        // ただし、AIが明確に「捏ね」や「練り込む」を指示し、かつPASTE_ADJUSTMENTSにある場合は計算を許容する
+        const hasAdjustment = PASTE_ADJUSTMENTS[name] || Object.entries(PASTE_ADJUSTMENTS).find(([k]) => name.includes(k));
+        
+        if (isPaste && !hasAdjustment) {
+          if (timing === "捏ね" || inst.includes("練り込む")) {
             timing = "成形時に包む";
             inst = "生地で包む";
           }
@@ -322,11 +327,11 @@ JSON出力例：
         if (timing === "捏ね" || inst.includes("練り込む")) {
           const adj = PASTE_ADJUSTMENTS[name] || Object.entries(PASTE_ADJUSTMENTS).find(([k]) => name.includes(k))?.[1];
           if (adj) {
-            liquidReduction += (f.ratio || 0) * adj.liquidFactor;
-            sugarReduction += (f.ratio || 0) * adj.sugarFactor;
+            liquidReduction += (ratio || 0) * adj.liquidFactor;
+            sugarReduction += (ratio || 0) * adj.sugarFactor;
           }
         }
-        return { name, grams, ratio: f.ratio || 0, timing: timing || null, step_instruction: inst || null, isFilling: true };
+        return { name, grams, ratio, timing: timing || null, step_instruction: inst || null, isFilling: true };
       });
 
       const adjustedBaseIngredients = calc.ingredients.map(ing => {
@@ -384,6 +389,22 @@ JSON出力例：
         method,
         texture,
         flourGrams
+      };
+    });
+
+    console.log("--- Generating Recipe END (Success) ---");
+    return Response.json({ recipes });
+  } catch (error) {
+    console.error("Critical API error:", error);
+    return Response.json({ error: `エラーが発生しました: ${error.message}` }, { status: 500 });
+  }
+}
+rvings: "8個分",
+        difficulty_level: difficulty,
+        method,
+        texture,
+        flourGrams,
+        recommendedProducts
       };
     });
 

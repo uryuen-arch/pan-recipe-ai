@@ -97,10 +97,20 @@ export async function getStepsTemplate(texture, method, timeCondition, recipeDat
   };
 
   // 4. 置換して返却
-  return steps.map((s, i) => ({
-    index: i + 1,
-    label: s.label,
-    desc: resolveTemplate(s.description_template, context),
-    time: resolveTemplate(s.time_template, context),
-  }));
+  return steps.map((s, i) => {
+    // ステップごとに個別の置換を行うが、バター系の注釈は全体で制御
+    let desc = resolveTemplate(s.description_template, context);
+    
+    // ハード系かつバター0の場合、バターに関する記述を強制的に削除または空文字にする
+    if (!hasButter && desc) {
+      desc = desc.replace("無塩バターは室温に戻す。", "").replace("バターは小さく切っておく。", "");
+    }
+
+    return {
+      index: i + 1,
+      label: s.label,
+      desc: desc,
+      time: resolveTemplate(s.time_template, context),
+    };
+  });
 }
